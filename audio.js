@@ -479,5 +479,21 @@ function _releaseCreatureAudio(it) {
 }
 
 /* ============================================================
+   PISTOL SHOT  ——  shut.mp3 を1回再生
+============================================================ */
+function playSoundShot() {
+  if (!_audioReady || !audioEnabled) return;
+
+  _loadAudioBuffer('mp3/shut.mp3', function(buf) {
+    if (!_audioCtx) return;
+    var src = _audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.loop   = false;
+    _toMaster(src);
+    src.start(_audioCtx.currentTime);
+  });
+}
+
+/* ============================================================
    END AUDIO SYSTEM
 ============================================================ */

@@ -200,10 +200,7 @@ function _showCaptureFeedback(msg, success) {
 var _uiCaptureV3 = new THREE.Vector3();
 
 function doCaptureAttempt() {
-  if (typeof _lockedCreatures !== 'undefined' && _lockedCreatures.length > 0) {
-    _showCaptureFeedback('捕獲中...', false);
-    return;
-  }
+  if (typeof _lockedCreatures !== 'undefined' && _lockedCreatures.length > 0) return;
   if (typeof _gameOver !== 'undefined' && _gameOver) return;
 
   /* 照準内の最良ターゲットを探す（room.js の fireBeam と同ロジック）*/
@@ -224,39 +221,21 @@ function doCaptureAttempt() {
     }
   }
 
-  if (!best) {
-    _showCaptureFeedback('対象なし', false);
-    return;
-  }
+  if (!best) return;
 
-  /* HP連動確率 */
-  var chance = typeof getCaptureChance === 'function'
-    ? getCaptureChance(best)
-    : 0.05;
-
-  if (Math.random() < chance) {
-    /* 成功: 既存の _lockCreature → _finishCapture フローへ */
-    if (typeof _lockCreature === 'function') {
-      _lockCreature(best);
-    }
-    _showCaptureFeedback(
-      '捕獲成功！ ' + Math.round(chance * 100) + '%',
-      true
-    );
-  } else {
-    _showCaptureFeedback(
-      '失敗... ' + Math.round(chance * 100) + '%',
-      false
-    );
+  /* _lockCreature 内で成功/失敗を抽選するので直接ロック */
+  if (typeof _lockCreature === 'function') {
+    _lockCreature(best);
   }
 }
 
 /* ================================================================
    5. 情報オーバーレイ（図鑑ボタン → repurpose）
 ================================================================ */
-var _infoOverlay   = null;
-var _infoAmmoEl    = null;
-var _infoEnemyEl   = null;
+var _infoOverlay      = null;
+var _infoAmmoEl       = null;
+var _infoCartridgeEl  = null;
+var _infoEnemyEl      = null;
 var _infoEnemyHPEl = null;
 var _infoEnemyPctEl = null;
 
@@ -299,20 +278,43 @@ var _infoEnemyPctEl = null;
   var wpnSec = _section('装備');
   card.appendChild(wpnSec);
 
+  /* ── マガジン行 ── */
   var ammoRow = document.createElement('div');
-  ammoRow.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 16px;';
+  ammoRow.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 16px 4px;';
 
   var wpnNameEl = document.createElement('div');
   wpnNameEl.style.cssText = 'flex:1;font-size:12px;color:rgba(255,255,180,0.95);';
   wpnNameEl.textContent = '拳銃';
 
   _infoAmmoEl = document.createElement('div');
-  _infoAmmoEl.style.cssText = 'font-size:11px;letter-spacing:0.08em;color:rgba(255,255,200,0.55);';
+  _infoAmmoEl.style.cssText = [
+    'font-size:13px;font-weight:bold;letter-spacing:0.10em;',
+    'color:rgba(255,255,200,0.88);font-family:monospace;'
+  ].join('');
   _infoAmmoEl.textContent = '─';
 
   ammoRow.appendChild(wpnNameEl);
   ammoRow.appendChild(_infoAmmoEl);
   wpnSec.appendChild(ammoRow);
+
+  /* ── カートリッジ行 ── */
+  var cartRow = document.createElement('div');
+  cartRow.style.cssText = 'display:flex;align-items:center;gap:12px;padding:2px 16px 10px;';
+
+  var cartLblEl = document.createElement('div');
+  cartLblEl.style.cssText = 'flex:1;font-size:9px;letter-spacing:0.14em;color:rgba(255,255,255,0.28);';
+  cartLblEl.textContent = 'CARTRIDGE';
+
+  _infoCartridgeEl = document.createElement('div');
+  _infoCartridgeEl.style.cssText = [
+    'font-size:11px;letter-spacing:0.08em;font-family:monospace;',
+    'color:rgba(255,200,80,0.65);'
+  ].join('');
+  _infoCartridgeEl.textContent = '─';
+
+  cartRow.appendChild(cartLblEl);
+  cartRow.appendChild(_infoCartridgeEl);
+  wpnSec.appendChild(cartRow);
 
   /* ── 近くの敵 ── */
   var enemySec = _section('近くの敵');
@@ -450,12 +452,27 @@ function _renderAmmo() {
   if (!_infoAmmoEl || typeof playerWeapons === 'undefined') return;
   var pw = playerWeapons[0];
   if (pw) {
-    _infoAmmoEl.textContent = pw.ammo + ' / ' + pw.reserveAmmo;
-    _infoAmmoEl.style.color = pw.ammo === 0
-      ? 'rgba(255,60,60,0.8)'
-      : 'rgba(255,255,200,0.55)';
+    var def = typeof WEAPON_DEFS !== 'undefined' ? WEAPON_DEFS[pw.type] : null;
+    var maxAmmo = def ? def.maxAmmo : 18;
+    /* マガジン */
+    _infoAmmoEl.textContent = pw.ammo + ' / ' + maxAmmo;
+    _infoAmmoEl.style.color =
+      pw.ammo === 0 && pw.reserveAmmo === 0 ? 'rgba(255,60,60,0.9)'  :
+      pw.ammo === 0                          ? 'rgba(255,160,40,0.9)' :
+      pw.ammo <= 4                           ? 'rgba(255,210,80,0.9)' :
+                                               'rgba(255,255,200,0.88)';
+    /* カートリッジ */
+    if (_infoCartridgeEl) {
+      _infoCartridgeEl.textContent = pw.reserveAmmo > 0
+        ? '×' + pw.reserveAmmo + ' 本'
+        : '弾切れ';
+      _infoCartridgeEl.style.color = pw.reserveAmmo === 0
+        ? 'rgba(255,80,80,0.75)'
+        : 'rgba(255,200,80,0.65)';
+    }
   } else {
     _infoAmmoEl.textContent = '─';
+    if (_infoCartridgeEl) _infoCartridgeEl.textContent = '─';
   }
 }
 
@@ -631,16 +648,18 @@ function updateActionUI(dt) {
     _renderEnemyInfo();
   }
 
-  /* ── 弾数表示更新 ── */
+  /* ── 弾数表示更新（モバイル）── */
   if (_ammoDispEl && typeof playerWeapons !== 'undefined') {
     var _pw = playerWeapons[0];
     if (_pw) {
-      _ammoDispEl.textContent = _pw.ammo + ' / ' + _pw.reserveAmmo;
-      _ammoDispEl.style.color = _pw.ammo === 0
-        ? 'rgba(255,80,80,0.85)'
-        : _pw.ammo <= 2
-          ? 'rgba(255,180,60,0.85)'
-          : 'rgba(255,200,80,0.72)';
+      var _def = typeof WEAPON_DEFS !== 'undefined' ? WEAPON_DEFS[_pw.type] : null;
+      var _max = _def ? _def.maxAmmo : 18;
+      _ammoDispEl.textContent = _pw.ammo + '/' + _max + '  ×' + _pw.reserveAmmo;
+      _ammoDispEl.style.color =
+        _pw.ammo === 0 && _pw.reserveAmmo === 0 ? 'rgba(255,80,80,0.90)'  :
+        _pw.ammo === 0                           ? 'rgba(255,160,40,0.90)' :
+        _pw.ammo <= 4                            ? 'rgba(255,200,80,0.90)' :
+                                                   'rgba(255,200,80,0.72)';
     } else {
       _ammoDispEl.textContent = '';
     }

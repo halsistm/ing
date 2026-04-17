@@ -290,7 +290,28 @@ function makeGlowMesh(geo, pal, sc, posVec3, glowFactor) {
 function buildGLBVariant(R2, glbKey, sizeKey, palOverride) {
   var geoKey = _GLB_GEO_KEYS[glbKey] || '_ghostGLBGeometry';
   var geo    = window[geoKey];
-  if (!geo) { var _fg = new THREE.Group(); _fg.userData.isCreature = true; _fg.userData.bodyH = 1.0; _fg.userData.wanderTarget = new THREE.Vector3(0,0,0); _fg.userData.wanderSpeed = 0.01; _fg.userData.alertSpeed = 0.03; _fg.userData.wanderTimer = 3.0; _fg.userData.wanderFacing = 0; _fg.userData.isAlert = false; return _fg; }
+  if (!geo) {
+    /* GLBロード失敗時フォールバック: 半透明の球体で存在を示す */
+    var _fg = new THREE.Group();
+    var _fbMat = new THREE.MeshStandardMaterial({
+      color: 0xaaccff, roughness: 0.4, metalness: 0.1,
+      transparent: true, opacity: 0.55,
+      emissive: new THREE.Color(0x224488), emissiveIntensity: 0.6
+    });
+    var _fbMesh = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 8), _fbMat);
+    _fbMesh.castShadow = true;
+    _fbMesh.position.y = 0.55;
+    _fg.add(_fbMesh);
+    _fg.userData.isCreature   = true;
+    _fg.userData.bodyH        = 1.0;
+    _fg.userData.wanderTarget = new THREE.Vector3(0, 0, 0);
+    _fg.userData.wanderSpeed  = 0.01;
+    _fg.userData.alertSpeed   = 0.03;
+    _fg.userData.wanderTimer  = 3.0;
+    _fg.userData.wanderFacing = 0;
+    _fg.userData.isAlert      = false;
+    return _fg;
+  }
 
   /* ── パレット選択: 固有番号優先、なければモデル別プールからランダム ── */
   var palPool  = _GLB_MODEL_PAL_MAP[glbKey] || [0];

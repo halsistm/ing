@@ -45,7 +45,9 @@ if (!isMobile) {
           if (it.type !== 'creature' || !it.alive) continue;
           var cp = it.pos.clone().project(camera);
           var sd = Math.sqrt(cp.x * cp.x + cp.y * cp.y);
-          if (sd < it.sdLimit && cp.z < 1.0 && camera.position.distanceTo(it.pos) < it.shootRange) {
+          var d  = camera.position.distanceTo(it.pos);
+          var dynSd = Math.min(it.sdLimit, (it.bodyH || 1.0) / Math.max(1.5, d));
+          if (sd < dynSd && cp.z < 1.0 && d < (it.shootRange || 18.0)) {
             aimed = true; break;
           }
         }

@@ -80,7 +80,7 @@ var _EFF_FRAG = [
   '  vec2 cc = uv - 0.5;',
   '  float dist = dot(cc, cc);',
   '  uv = uv + cc * (dist * 0.06);',
-  '  if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0){ gl_FragColor=vec4(0,0,0,1); return; }',
+  '  uv = clamp(uv, 0.0, 1.0);  /* 範囲外は端ピクセルを引き伸ばして黒枠を防ぐ */',
 
   /* ── ブロックノイズ：UV をタイルに丸める ── */
   '  vec2 sUv = uv;',

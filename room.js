@@ -1292,734 +1292,79 @@ function buildStackedBoxes(R2) {
   return g;
 }
 
-function buildPendulum(R2, H) {
-  var g = new THREE.Group();
-  var pendH = H * (0.45 + R2() * 0.45);
-  var mat = matStd(0x606060, 0.35, 0.85);
-  var rod = mkMesh(new THREE.CylinderGeometry(0.012, 0.012, pendH, 8), mat);
-  rod.position.y = H - pendH / 2; g.add(rod);
-  var bobType = Math.floor(R2() * 3);
-  var bobMat = matStd(0x060606, 0.04, 0.96);
-  var bob;
-  if (bobType === 0) bob = mkMesh(new THREE.SphereGeometry(0.14 + R2() * 0.22, 28, 18), bobMat);
-  else if (bobType === 1) { bob = mkMesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), bobMat); bob.rotation.y = Math.PI/4; bob.rotation.x = Math.PI/8; }
-  else bob = mkMesh(new THREE.OctahedronGeometry(0.18 + R2() * 0.14, 0), bobMat);
-  bob.position.y = H - pendH - 0.15; g.add(bob);
-  var pl = new THREE.PointLight(0xfff8f0, 0.7, 3.5, 2.0);
-  pl.position.y = H - pendH - 0.15; g.add(pl);
-  return g;
-}
 
-function buildWireframeCube(R2) {
-  var g = new THREE.Group();
-  var sz = 0.55 + R2() * 1.6;
-  var cubeGeo = new THREE.BoxGeometry(sz, sz, sz);
-  var edges = new THREE.EdgesGeometry(cubeGeo);
-  var lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 });
-  var wf = new THREE.LineSegments(edges, lineMat);
-  wf.position.y = sz / 2 + 0.25 + R2() * 0.5;
-  wf.rotation.x = R2() * Math.PI; wf.rotation.z = R2() * Math.PI;
-  g.add(wf);
-  var ped = mkMesh(new THREE.CylinderGeometry(0.13, 0.13, 0.25, 16),
-    matStd(0x111111, 0.85, 0.1));
-  ped.position.y = 0.125; g.add(ped);
-  var shd = makeDropShadow(0.3, 0.3, 0.42);
-  g.add(shd);
-  return g;
-}
 
-function buildGridPanel(R2, H) {
-  var g = new THREE.Group();
-  var pw = 1.4 + R2() * 2.0;
-  var ph = 1.2 + R2() * 2.5;
-  var cols = 6 + Math.floor(R2() * 8);
-  var rows = Math.ceil(cols * ph / pw);
-  var cw = pw / cols, rh = ph / rows;
-  var mat = new THREE.LineBasicMaterial({ color: 0xdddddd, transparent: true, opacity: 0.4 });
-  var points = [];
-  var i;
-  for (i = 0; i <= cols; i++) {
-    points.push(new THREE.Vector3(-pw/2 + i*cw, -ph/2, 0));
-    points.push(new THREE.Vector3(-pw/2 + i*cw,  ph/2, 0));
-  }
-  for (i = 0; i <= rows; i++) {
-    points.push(new THREE.Vector3(-pw/2, -ph/2 + i*rh, 0));
-    points.push(new THREE.Vector3( pw/2, -ph/2 + i*rh, 0));
-  }
-  var geo = new THREE.BufferGeometry().setFromPoints(points);
-  var grid = new THREE.LineSegments(geo, mat);
-  grid.position.y = ph / 2 + 0.05;
-  g.add(grid);
-  // Thin frame
-  var frameMat = matStd(0x2a2a2a, 0.6, 0.5);
-  var frame = mkMesh(new THREE.BoxGeometry(pw + 0.04, ph + 0.04, 0.02), frameMat);
-  frame.position.y = ph / 2 + 0.05; g.add(frame);
-  return g;
-}
 
-function buildOrb(R2, H) {
-  // Glowing orb elevated on a pedestal
-  var g = new THREE.Group();
-  var pedH = 0.8 + R2() * 1.2;
-  var pedR = 0.1 + R2() * 0.08;
-  var orbR = 0.18 + R2() * 0.3;
-  var pedMat = matStd(0x1a1a1a, 0.7, 0.2);
-  var ped = mkMesh(new THREE.CylinderGeometry(pedR, pedR * 1.5, pedH, 24), pedMat);
-  ped.position.y = pedH / 2; g.add(ped);
-  var capMat = matStd(0x0d0d0d, 0.5, 0.3);
-  var cap = mkMesh(new THREE.CylinderGeometry(orbR * 1.1, pedR, 0.06, 24), capMat);
-  cap.position.y = pedH; g.add(cap);
-  var orbCols = [0x00ffcc, 0xff4488, 0xffdd00, 0x4488ff, 0xff8800];
-  var col = orbCols[Math.floor(R2() * orbCols.length)];
-  var orbMat = new THREE.MeshStandardMaterial({
-    color: col, emissive: new THREE.Color(col),
-    emissiveIntensity: 1.8, roughness: 0.1, metalness: 0.0,
-    transparent: true, opacity: 0.88
-  });
-  var orb = mkMesh(new THREE.SphereGeometry(orbR, 28, 20), orbMat);
-  orb.position.y = pedH + orbR + 0.04; g.add(orb);
-  var pl = new THREE.PointLight(col, 3.0, orbR * 18, 2.0);
-  pl.position.y = pedH + orbR + 0.04; g.add(pl);
-  var shd = makeDropShadow(pedR * 2.5, pedR * 2.5, 0.7);
-  g.add(shd);
-  return g;
-}
 
-function buildSlab(R2) {
-  // Minimal altar / floating slab
-  var g = new THREE.Group();
-  var w = 1.2 + R2() * 2.5;
-  var d = 0.6 + R2() * 1.0;
-  var h = 0.08 + R2() * 0.1;
-  var pedH = 0.6 + R2() * 1.0;
-  var cols = [0xf4f0ec, 0x0c0c0c, 0x8a7a6a, 0xc4c4c4];
-  var mat = matStd(cols[Math.floor(R2() * cols.length)], 0.5 + R2() * 0.3, 0.1 + R2() * 0.4);
-  // Thin support
-  var sup = mkMesh(new THREE.BoxGeometry(0.06, pedH, 0.06), matStd(0x1a1a1a, 0.8, 0.2));
-  sup.position.y = pedH / 2; g.add(sup);
-  // The slab
-  var slab = mkMesh(createRoundedBoxGeo(w, h, d, Math.min(h, 0.025), 2), mat);
-  slab.position.y = pedH; g.add(slab);
-  var shd = makeDropShadow(Math.max(w, d) * 0.55, Math.max(w, d) * 0.55, 0.46);
-  g.add(shd);
-  return g;
-}
 
-// ------ ユニコーン置物 (unicon.glb) ------
-function buildUnicorn(R2) {
-  var g = new THREE.Group();
-  var scale = 0.55 + R2() * 0.7;
-  var s = scale;
 
-  if (window._unicornGLTF) {
-    // GLBモデルをクローンして配置
-    var model = window._unicornGLTF.scene.clone(true);
 
-    // バウンディングボックスで自動スケール調整
-    var box = new THREE.Box3().setFromObject(model);
-    var size = new THREE.Vector3();
-    box.getSize(size);
-    var maxDim = Math.max(size.x, size.y, size.z);
-    var targetSize = 1.2 * s;
-    var autoScale = (maxDim > 0) ? (targetSize / maxDim) : 1;
-    model.scale.setScalar(autoScale);
 
-    // 底面をY=0に合わせる
-    box.setFromObject(model);
-    model.position.y = -box.min.y;
 
-    // マテリアルのshadowキャスト設定
-    model.traverse(function(child) {
-  if (child.isMesh) {
-    child.geometry.computeVertexNormals(); // 法線を生成
-    child.material = new THREE.MeshStandardMaterial({
-      vertexColors: true,  // COLOR_0 の頂点カラーを使う
-      roughness: 0.35,
-      metalness: 0.1
-    });
-    child.castShadow = true;
-    child.receiveShadow = true;
-  }
-});
 
-    g.add(model);
-
-    // 台座
-    var ped = mkMesh(new THREE.BoxGeometry(1.0*s, 0.08*s, 0.6*s), matStd(0xeeeae4, 0.7, 0.05));
-    ped.position.y = 0.04*s; g.add(ped);
-
-    // 淡いグロー
-    var pl = new THREE.PointLight(0xffeeff, 0.5, s * 3.5, 2.0);
-    pl.position.y = 0.9*s; g.add(pl);
-
-  } else {
-    // フォールバック: プロシージャル描画
-    var bodyCol = Math.floor(R2() * 3);
-    var mainCol = bodyCol === 0 ? 0xf8f4ff : (bodyCol === 1 ? 0xc8f0ff : 0xffe0f4);
-    var hornCol = 0xffe066;
-    var matBody = matStd(mainCol, 0.3, 0.1);
-    var matHorn = new THREE.MeshStandardMaterial({ color: hornCol, roughness: 0.15, metalness: 0.7,
-      emissive: new THREE.Color(0xffcc00), emissiveIntensity: 0.3 });
-    var matHoof = matStd(0xc0a0c0, 0.55, 0.4);
-    var matMane = matStd(bodyCol === 0 ? 0xffb0e0 : (bodyCol === 1 ? 0xffccaa : 0xb0d8ff), 0.4, 0.05);
-    var body = mkMesh(new THREE.SphereGeometry(0.38*s, 16, 12), matBody);
-    body.scale.set(1.55, 1.0, 1.0); body.position.y = 0.62*s; g.add(body);
-    var neck = mkMesh(new THREE.CylinderGeometry(0.14*s, 0.18*s, 0.38*s, 10), matBody);
-    neck.rotation.z = -0.35; neck.position.set(0.3*s, 0.88*s, 0); g.add(neck);
-    var head = mkMesh(new THREE.SphereGeometry(0.18*s, 14, 10), matBody);
-    head.scale.set(1.5, 1.0, 1.0); head.position.set(0.52*s, 1.08*s, 0); g.add(head);
-    var snout = mkMesh(new THREE.CylinderGeometry(0.07*s, 0.09*s, 0.14*s, 10), matBody);
-    snout.rotation.z = Math.PI/2; snout.position.set(0.69*s, 1.05*s, 0); g.add(snout);
-    var horn = mkMesh(new THREE.CylinderGeometry(0, 0.055*s, 0.32*s, 8), matHorn);
-    horn.rotation.z = -0.22; horn.position.set(0.56*s, 1.32*s, 0); g.add(horn);
-    var eyeMat = matStd(0x220033, 0.8, 0.0);
-    [[-0.04*s, 0.04*s], [0.04*s, 0.04*s]].forEach(function(ep) {
-      var eye = mkMesh(new THREE.SphereGeometry(0.025*s, 8, 6), eyeMat);
-      eye.position.set(0.69*s, 1.1*s, ep[0]); g.add(eye);
-    });
-    [[-0.18*s,-0.16*s], [-0.18*s,0.16*s], [0.16*s,-0.16*s], [0.16*s,0.16*s]].forEach(function(lp) {
-      var legH = 0.42*s;
-      var leg = mkMesh(new THREE.BoxGeometry(0.09*s, legH, 0.09*s), matBody);
-      leg.position.set(lp[0], legH/2, lp[1]); g.add(leg);
-      var hoof = mkMesh(new THREE.BoxGeometry(0.1*s, 0.07*s, 0.11*s), matHoof);
-      hoof.position.set(lp[0], 0.035*s, lp[1]); g.add(hoof);
-    });
-    var tail = mkMesh(new THREE.CylinderGeometry(0.04*s, 0.01*s, 0.44*s, 8), matMane);
-    tail.rotation.z = 0.7; tail.position.set(-0.5*s, 0.7*s, 0); g.add(tail);
-    for (var mi = 0; mi < 4; mi++) {
-      var mane = mkMesh(new THREE.SphereGeometry(0.07*s - mi*0.008*s, 8, 6), matMane);
-      mane.position.set(0.28*s - mi*0.1*s, 1.05*s + mi*0.04*s, 0); g.add(mane);
+/* ----------------------------------------------------------
+   _makeGLTFLoader — DRACOLoader 付き GLTFLoader を生成する共通ヘルパー
+   Draco 圧縮 GLB（家具等）を正しく読み込むために必要。
+---------------------------------------------------------- */
+var _sharedDracoLoader = null;
+function _makeGLTFLoader() {
+  var l = new THREE.GLTFLoader();
+  if (typeof THREE.DRACOLoader !== 'undefined') {
+    if (!_sharedDracoLoader) {
+      _sharedDracoLoader = new THREE.DRACOLoader();
+      _sharedDracoLoader.setDecoderPath(
+        'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/'
+      );
     }
-    var pl2 = new THREE.PointLight(mainCol, 0.6, s * 3.5, 2.0);
-    pl2.position.y = 0.9*s; g.add(pl2);
-    var ped2 = mkMesh(new THREE.BoxGeometry(1.0*s, 0.1*s, 0.6*s), matStd(0xeeeae4, 0.7, 0.05));
-    ped2.position.y = 0.05*s; g.add(ped2);
+    l.setDRACOLoader(_sharedDracoLoader);
   }
-
-  var shd = makeDropShadow(0.55*s, 0.55*s, 0.56);
-  g.add(shd);
-  return g;
+  return l;
 }
 
-// ------ オイルタイマー（砂時計型オイルランプ） ------
-function buildOilTimer(R2) {
-  var g = new THREE.Group();
-  var scale = 0.9 + R2() * 0.7;
-  var s = scale;
-  var glassCol = [0xffe8a0, 0xff8844, 0x88ddff, 0xff4499, 0x44ffaa];
-  var oilCol = glassCol[Math.floor(R2() * glassCol.length)];
-  var frameMat = matStd(0x1a1a18, 0.3, 0.85);
-  var glassMat = new THREE.MeshStandardMaterial({
-    color: oilCol, roughness: 0.05, metalness: 0.0,
-    transparent: true, opacity: 0.62,
-    emissive: new THREE.Color(oilCol), emissiveIntensity: 0.5
+/* ----------------------------------------------------------
+   preloadGLBProps — 家具・備品GLBを並列プリロード
+   init.js の loadRoomProps から呼び出される。
+   全件ロード完了（失敗含む）後に onDone() を呼ぶ。
+---------------------------------------------------------- */
+var _GLB_PROP_NAMES = [
+  'sofa1','sofa2','sofa3','sofa4',
+  'table1','table2','table3','table4',
+  'bench','wooden_storage_shelf',
+  'taru','kusa','beach_ball','traffic_cone',
+  'barrier','bird','swing','kaidan'
+];
+
+function preloadGLBProps(onProgress, onDone) {
+  var loader = _makeGLTFLoader();
+  var toLoad  = _GLB_PROP_NAMES.concat(['unicon']);
+  var total   = toLoad.length;
+  var remain  = total;
+
+  function _done() {
+    remain--;
+    if (typeof onProgress === 'function') onProgress(total - remain, total);
+    if (remain <= 0 && typeof onDone === 'function') onDone();
+  }
+
+  toLoad.forEach(function(name) {
+    loader.load(
+      'glb/' + name + '.glb',
+      function(gltf) {
+        if (name === 'unicon') {
+          window._unicornGLTF = gltf;
+        } else {
+          if (!window._glbCache) window._glbCache = {};
+          window._glbCache[name] = gltf;
+        }
+        _done();
+      },
+      null,
+      function(err) {
+        console.warn('[preloadGLBProps] ' + name + '.glb load failed:', err);
+        _done();
+      }
+    );
   });
-  // Base plate
-  var base = mkMesh(new THREE.CylinderGeometry(0.28*s, 0.32*s, 0.06*s, 24), frameMat);
-  base.position.y = 0.03*s; g.add(base);
-  // Top plate
-  var top = mkMesh(new THREE.CylinderGeometry(0.28*s, 0.32*s, 0.06*s, 24), frameMat.clone());
-  top.position.y = 1.14*s; g.add(top);
-  // 4 frame rods
-  for (var ri = 0; ri < 4; ri++) {
-    var ra = ri * Math.PI / 2 + Math.PI/4;
-    var rod = mkMesh(new THREE.CylinderGeometry(0.025*s, 0.025*s, 1.08*s, 8), frameMat.clone());
-    rod.position.set(Math.cos(ra)*0.22*s, 0.57*s, Math.sin(ra)*0.22*s); g.add(rod);
-  }
-  // Upper glass bulb
-  var upperBulb = mkMesh(new THREE.SphereGeometry(0.2*s, 18, 14, 0, Math.PI*2, 0, Math.PI/2), glassMat);
-  upperBulb.rotation.x = Math.PI; upperBulb.position.y = 0.9*s; g.add(upperBulb);
-  // Neck
-  var neck = mkMesh(new THREE.CylinderGeometry(0.035*s, 0.035*s, 0.16*s, 10), glassMat.clone());
-  neck.position.y = 0.62*s; g.add(neck);
-  // Lower bulb (with oil filling partially)
-  var lowerBulb = mkMesh(new THREE.SphereGeometry(0.2*s, 18, 14, 0, Math.PI*2, 0, Math.PI/2), glassMat.clone());
-  lowerBulb.position.y = 0.38*s; g.add(lowerBulb);
-  // Oil level indicator (flat disc inside lower bulb)
-  var fillPct = 0.3 + R2() * 0.65;
-  var oilFill = mkMesh(new THREE.CylinderGeometry(0.16*s * fillPct, 0.16*s * fillPct, 0.01, 16),
-    new THREE.MeshStandardMaterial({color: oilCol, roughness:0.05, metalness:0.0,
-      emissive: new THREE.Color(oilCol), emissiveIntensity: 1.2, transparent:true, opacity:0.9}));
-  oilFill.position.y = 0.08*s + fillPct * 0.28*s; g.add(oilFill);
-  // Glow from oil
-  var pl = new THREE.PointLight(oilCol, 2.0, s*4.5, 2.0);
-  pl.position.y = 0.55*s; g.add(pl);
-  var shd = makeDropShadow(0.35*s, 0.35*s, 0.63);
-  g.add(shd);
-  return g;
-}
-
-// ------ 巨大スピーカー ------
-function buildGiantSpeaker(R2, H) {
-  var g = new THREE.Group();
-  var w = 1.2 + R2() * 1.7;
-  var h = 1.5 + R2() * 2.2;
-  var d = 0.55 + R2() * 0.85;
-
-  var matCab = matStd(0x0f0f0f, 0.12 + R2() * 0.25, 0.35 + R2() * 0.25);
-  var body = mkMesh(createRoundedBoxGeo(w, h, d, 0.035, 3), matCab);
-  body.position.y = h / 2;
-  g.add(body);
-
-  // Front baffle
-  var baffleMat = matStd(0x0a0a0a, 0.75, 0.05);
-  var baffle = mkMesh(new THREE.BoxGeometry(w * 0.94, h * 0.86, 0.02), baffleMat);
-  baffle.position.set(0, h / 2, d / 2 + 0.01);
-  g.add(baffle);
-
-  var neonColors = [0x00ffdd, 0xff0066, 0xffee00, 0x0088ff, 0x00ff88, 0xff4400];
-  var col = neonColors[Math.floor(R2() * neonColors.length)];
-  var neonMat = new THREE.MeshStandardMaterial({
-    color: col,
-    emissive: new THREE.Color(col),
-    emissiveIntensity: 2.6 + R2() * 1.4,
-    roughness: 0.22,
-    metalness: 0.15
-  });
-
-  var wooMat = matStd(0xd8d8d8, 0.16 + R2() * 0.12, 0.25 + R2() * 0.25);
-  var r1 = Math.min(w, h) * (0.16 + R2() * 0.05);
-  var r2 = r1 * (0.92 + R2() * 0.06);
-
-  function addWoofer(cy, r, makeNeonRing) {
-    var face = mkMesh(new THREE.CircleGeometry(r, 32), wooMat);
-    face.position.set(0, cy, d / 2 + 0.012);
-    g.add(face);
-    if (makeNeonRing) {
-      var ring = mkMesh(new THREE.RingGeometry(r * 0.55, r * 0.95, 48), neonMat.clone());
-      ring.position.set(0, cy, d / 2 + 0.013);
-      g.add(ring);
-      var pl = new THREE.PointLight(col, 0.9 + R2() * 0.9, 3.5 + R2() * 1.5, 2.0);
-      pl.position.set(0, cy, d / 2 + 0.18);
-      g.add(pl);
-    }
-  }
-
-  addWoofer(h * 0.62, r1, true);
-  addWoofer(h * 0.30, r2, false);
-
-  // Simple feet
-  var footMat = matStd(0x111111, 0.25, 0.65);
-  [[-w*0.35, d*0.28], [w*0.35, d*0.28], [-w*0.35, -d*0.28], [w*0.35, -d*0.28]].forEach(function(p) {
-    var ft = mkMesh(new THREE.BoxGeometry(w * 0.12, 0.08, d * 0.12), footMat.clone());
-    ft.position.set(p[0], 0.04, p[1]);
-    g.add(ft);
-  });
-
-  // Shadow
-  var shd = makeDropShadow(Math.max(w, d) * 0.55, Math.max(w, d) * 0.55, 0.63);
-  g.add(shd);
-  return g;
-}
-
-// ------ 変電装置 / Transformer ------
-function buildSubstationTransformer(R2, H) {
-  var g = new THREE.Group();
-  var w = 1.0 + R2() * 1.3;
-  var d = 0.75 + R2() * 0.8;
-  var h = 2.0 + R2() * 2.5;
-
-  var baseMat = matStd(0x151515, 0.12 + R2() * 0.25, 0.2 + R2() * 0.3);
-  var platform = mkMesh(new THREE.BoxGeometry(w * 1.05, 0.08, d * 1.05), baseMat);
-  platform.position.y = 0.04;
-  g.add(platform);
-
-  var bodyMat = matStd(0x0f0f0f, 0.18 + R2() * 0.22, 0.25 + R2() * 0.2);
-  var tank = mkMesh(createRoundedBoxGeo(w * 0.58, h * 0.42, d * 0.42, 0.030, 3), bodyMat);
-  tank.position.y = h * 0.38;
-  g.add(tank);
-
-  var coreMat = matStd(0x2a2a2a, 0.06 + R2() * 0.12, 0.7);
-  var coreW = w * 0.18;
-  var coilR = Math.min(w, d) * (0.18 + R2() * 0.12);
-  // Two coil rings (stylized)
-  for (var i = 0; i < 2; i++) {
-    var tor = mkMesh(new THREE.TorusGeometry(coilR, w * 0.02, 10, 40), coreMat.clone());
-    tor.rotation.x = Math.PI / 2;
-    tor.position.set((i === 0 ? -coreW : coreW), h * 0.40 + (i === 0 ? 0.06 : -0.04), 0);
-    g.add(tor);
-  }
-
-  // Insulator fins
-  var finMat = matStd(0x3a3a3a, 0.08, 0.3);
-  for (var fi = 0; fi < 5; fi++) {
-    var fin = mkMesh(new THREE.BoxGeometry(w * 0.04, h * 0.26, d * 0.02), finMat.clone());
-    fin.position.set(0, h * 0.50, -d * 0.10 + fi * d * 0.04);
-    g.add(fin);
-  }
-
-  // Control light
-  var col = [0x00ffdd, 0xff0066, 0xffee00, 0x0088ff][Math.floor(R2() * 4)];
-  var ledMat = new THREE.MeshStandardMaterial({ color: col, emissive: new THREE.Color(col), emissiveIntensity: 3.2, roughness: 0.25, metalness: 0.1 });
-  var led = mkMesh(new THREE.SphereGeometry(0.05 + R2() * 0.03, 12, 8), ledMat);
-  led.position.set(w * 0.18, h * 0.78, d * 0.12);
-  g.add(led);
-  var pl = new THREE.PointLight(col, 1.4, 4.0 + R2() * 2.0, 2.0);
-  pl.position.copy(led.position);
-  g.add(pl);
-
-  var shd = makeDropShadow(Math.max(w, d) * 0.75, Math.max(w, d) * 0.75, 0.53);
-  g.add(shd);
-  return g;
-}
-
-// ------ DJブース ------
-function buildDJBooth(R2, H) {
-  var g = new THREE.Group();
-  var w = 1.3 + R2() * 1.4;
-  var d = 0.7 + R2() * 0.7;
-  var tableH = 0.25 + R2() * 0.20;
-  var panelH = 1.0 + R2() * 0.9;
-
-  var topMat = matStd(0x111111, 0.22 + R2() * 0.20, 0.75);
-  var top = mkMesh(createRoundedBoxGeo(w, tableH, d, 0.022, 3), topMat);
-  top.position.y = tableH / 2;
-  g.add(top);
-
-  var panelMat = matStd(0x0c0c0c, 0.25, 0.45);
-  var panel = mkMesh(new THREE.BoxGeometry(w * 0.93, panelH, d * 0.08), panelMat);
-  panel.position.set(0, panelH / 2 + tableH, -d / 2 + d * 0.04);
-  g.add(panel);
-
-  // Deck discs
-  var discMat = matStd(0x222222, 0.08, 0.6);
-  var discR = Math.min(w, d) * (0.17 + R2() * 0.05);
-  var discY = tableH + 0.55;
-
-  function deckAt(cx) {
-    var disc = mkMesh(new THREE.CylinderGeometry(discR, discR, 0.035, 28), discMat.clone());
-    disc.position.set(cx, discY, d * 0.02);
-    // Keep the deck surface horizontal (disk faces up).
-    disc.rotation.x = 0;
-    g.add(disc);
-    var ringMat = new THREE.MeshStandardMaterial({
-      color: 0x00ffdd,
-      emissive: new THREE.Color(0x00ffdd),
-      emissiveIntensity: 1.8,
-      roughness: 0.22,
-      metalness: 0.15
-    });
-    var ring = mkMesh(new THREE.RingGeometry(discR * 0.62, discR * 0.97, 48), ringMat);
-    ring.position.set(cx, discY, d * 0.028);
-    ring.rotation.x = Math.PI / 2;
-    g.add(ring);
-  }
-
-  deckAt(-w * 0.22);
-  deckAt(w * 0.22);
-
-  // Mixer knobs
-  var knobMat = matStd(0x3a3a3a, 0.12, 0.8);
-  var knobCount = 10 + Math.floor(R2() * 8);
-  for (var i = 0; i < knobCount; i++) {
-    var kx = (R2() - 0.5) * w * 0.46;
-    var ky = tableH + 0.28 + R2() * 0.20;
-    var kz = d * (0.08 + R2() * 0.10);
-    var knob = mkMesh(new THREE.CylinderGeometry(0.02, 0.03, 0.05, 10), knobMat.clone());
-    knob.position.set(kx, ky, kz);
-    g.add(knob);
-    if (R2() > 0.55) {
-      var ledCol = [0xff0066, 0x00ffdd, 0xffee00, 0x0088ff][Math.floor(R2() * 4)];
-      var led = mkMesh(new THREE.SphereGeometry(0.018, 10, 8), new THREE.MeshStandardMaterial({
-        color: ledCol,
-        emissive: new THREE.Color(ledCol),
-        emissiveIntensity: 2.4,
-        roughness: 0.25,
-        metalness: 0.08
-      }));
-      led.position.set(kx, ky + 0.05, kz + 0.01);
-      g.add(led);
-      var pl = new THREE.PointLight(ledCol, 0.55, 2.6, 1.8);
-      pl.position.copy(led.position);
-      g.add(pl);
-    }
-  }
-
-  // Neon strip on panel
-  var stripCol = [0xff0066, 0x00ffdd, 0xffee00, 0x0088ff][Math.floor(R2() * 4)];
-  var stripMat = new THREE.MeshStandardMaterial({
-    color: stripCol,
-    emissive: new THREE.Color(stripCol),
-    emissiveIntensity: 3.0,
-    roughness: 0.2,
-    metalness: 0.1
-  });
-  var strip = mkMesh(new THREE.BoxGeometry(w * 0.55, 0.02, d * 0.03), stripMat);
-  strip.position.set(0, tableH + 0.85, -d/2 + d * 0.06);
-  g.add(strip);
-  var pl2 = new THREE.PointLight(stripCol, 1.0, 4.0, 2.0);
-  pl2.position.set(0, tableH + 0.85, -d/2 + d * 0.02);
-  g.add(pl2);
-
-  var shd = makeDropShadow(Math.max(w, d) * 0.65, Math.max(w, d) * 0.65, 0.56);
-  g.add(shd);
-
-  return g;
-}
-
-// ------ アナログシンセ（コントローラ系） ------
-function buildAnalogSynth(R2, H) {
-  var g = new THREE.Group();
-  var w = 1.2 + R2() * 1.4;
-  var d = 0.55 + R2() * 0.65;
-  var baseH = 0.28 + R2() * 0.22;
-  var panelH = 0.55 + R2() * 0.6;
-
-  var baseMat = matStd(0x0f0f0f, 0.20, 0.55);
-  var base = mkMesh(createRoundedBoxGeo(w, baseH, d, 0.025, 3), baseMat);
-  base.position.y = baseH / 2;
-  g.add(base);
-
-  var panelMat = matStd(0x111111, 0.35, 0.2);
-  var panel = mkMesh(new THREE.BoxGeometry(w * 0.95, panelH, d * 0.10), panelMat);
-  panel.position.set(0, baseH + panelH / 2, 0);
-  g.add(panel);
-
-  // Screen (canvas waveform)
-  var cv = document.createElement('canvas');
-  cv.width = 256; cv.height = 96;
-  var cx = cv.getContext('2d');
-  cx.fillStyle = '#041014';
-  cx.fillRect(0, 0, cv.width, cv.height);
-  var waveCol = [0x00ffdd, 0x00aaff, 0xffee00, 0xff33aa][Math.floor(R2() * 4)];
-  cx.strokeStyle = 'rgba(' + ((waveCol>>16)&255) + ',' + ((waveCol>>8)&255) + ',' + (waveCol&255) + ',0.95)';
-  cx.lineWidth = 2;
-  cx.beginPath();
-  for (var i = 0; i < 256; i++) {
-    var t = i / 256;
-    var y = cv.height * 0.52
-      + Math.sin(t * (3 + R2()*4) * Math.PI*2 + R2()*3) * cv.height * (0.12 + R2()*0.08)
-      + Math.sin(t * (1 + R2()*3) * Math.PI*2) * cv.height * 0.05;
-    if (i === 0) cx.moveTo(i, y);
-    else cx.lineTo(i, y);
-  }
-  cx.stroke();
-  // Grid
-  cx.strokeStyle = 'rgba(0,255,210,0.18)';
-  for (var gx = 0; gx < 256; gx += 32) { cx.beginPath(); cx.moveTo(gx,0); cx.lineTo(gx,cv.height); cx.stroke(); }
-  for (var gy = 0; gy < cv.height; gy += 24) { cx.beginPath(); cx.moveTo(0,gy); cx.lineTo(cv.width,gy); cx.stroke(); }
-
-  var screenMat = new THREE.MeshStandardMaterial({
-    map: new THREE.CanvasTexture(cv),
-    emissive: new THREE.Color(waveCol),
-    emissiveIntensity: 1.6,
-    roughness: 0.18,
-    metalness: 0.05
-  });
-  var screen = mkMesh(new THREE.PlaneGeometry(w * 0.26, panelH * 0.42), screenMat);
-  screen.position.set(-w * 0.26, baseH + panelH * 0.08, d / 2 + 0.03);
-  g.add(screen);
-
-  // Knobs
-  var knobMat = matStd(0x333333, 0.18, 0.7);
-  var knobCount = 12 + Math.floor(R2() * 10);
-  for (var k = 0; k < knobCount; k++) {
-    var kx = (R2() - 0.5) * w * 0.72;
-    var ky = baseH + panelH * (0.10 + R2() * 0.72);
-    var kz = d * (0.16 + R2() * 0.08);
-    var knob = mkMesh(new THREE.CylinderGeometry(0.02, 0.03, 0.05, 10), knobMat.clone());
-    knob.position.set(kx, ky, kz);
-    g.add(knob);
-  }
-
-  // LED strips
-  var ledCol = [0xff0066, 0x00ffdd, 0xffee00, 0x0088ff][Math.floor(R2() * 4)];
-  var ledMat = new THREE.MeshStandardMaterial({
-    color: ledCol,
-    emissive: new THREE.Color(ledCol),
-    emissiveIntensity: 2.8,
-    roughness: 0.22,
-    metalness: 0.1
-  });
-  var strip = mkMesh(new THREE.BoxGeometry(w * 0.72, 0.02, d * 0.03), ledMat);
-  strip.position.set(0, baseH + panelH * 0.82, d / 2 + 0.03);
-  g.add(strip);
-  var pl = new THREE.PointLight(ledCol, 1.0, 4.0, 2.0);
-  pl.position.set(0, baseH + panelH * 0.82, d / 2 + 0.10);
-  g.add(pl);
-
-  var shd = makeDropShadow(Math.max(w, d) * 0.60, Math.max(w, d) * 0.60, 0.49);
-  g.add(shd);
-  return g;
-}
-
-// ------ アナログ・イコライザ / LEDバー系 ------
-function buildAnalogEqualizer(R2, H) {
-  var g = new THREE.Group();
-  var w = 0.9 + R2() * 1.2;
-  var d = 0.42 + R2() * 0.55;
-  var h = 1.5 + R2() * 1.8;
-
-  var rackMat = matStd(0x0f0f0f, 0.18, 0.65);
-  var rack = mkMesh(createRoundedBoxGeo(w, 0.18, d, 0.018, 3), rackMat);
-  rack.position.set(0, 0.18 / 2, 0);
-  g.add(rack);
-
-  var panelMat = matStd(0x101010, 0.22, 0.2);
-  var panel = mkMesh(new THREE.BoxGeometry(w * 0.72, h, d * 0.16), panelMat);
-  panel.position.y = h / 2;
-  g.add(panel);
-
-  var col = [0x00ffdd, 0xff0066, 0xffee00, 0x0088ff][Math.floor(R2() * 4)];
-  var barMat = new THREE.MeshStandardMaterial({
-    color: col,
-    emissive: new THREE.Color(col),
-    emissiveIntensity: 3.1,
-    roughness: 0.2,
-    metalness: 0.1
-  });
-
-  var barCount = 10 + Math.floor(R2() * 10);
-  for (var i = 0; i < barCount; i++) {
-    var bw = (w * 0.62) / barCount;
-    var bh = h * (0.15 + R2() * 0.80);
-    var bar = mkMesh(new THREE.BoxGeometry(bw * 0.8, bh, d * 0.06), barMat.clone());
-    var x = -w * 0.31 + bw * 0.5 + i * bw;
-    bar.position.set(x, bh / 2, d * 0.06);
-    g.add(bar);
-  }
-
-  var pl = new THREE.PointLight(col, 1.2, 5.0, 2.0);
-  pl.position.set(0, h * 0.65, d * 0.22);
-  g.add(pl);
-
-  var shd = makeDropShadow(Math.max(w, d) * 0.55, Math.max(w, d) * 0.55, 0.49);
-  g.add(shd);
-
-  return g;
-}
-
-// ------ ネオン系彫刻 / Neon sculpture ------
-function buildNeonSculpture(R2, H) {
-  var g = new THREE.Group();
-  var col = [0x00ffdd, 0xff0066, 0xffee00, 0x0088ff, 0xcc00ff, 0x00ff88][Math.floor(R2() * 6)];
-  var neonMat = new THREE.MeshStandardMaterial({
-    color: col,
-    emissive: new THREE.Color(col),
-    emissiveIntensity: 3.6 + R2() * 1.3,
-    roughness: 0.18,
-    metalness: 0.28
-  });
-
-  var radius = 0.45 + R2() * 0.25;
-  var baseY = 0.45 + R2() * 0.25;
-  var n = 6 + Math.floor(R2() * 4);
-  for (var i = 0; i < n; i++) {
-    var a = (i / n) * Math.PI * 2 + (R2() - 0.5) * 0.5;
-    var len = 0.35 + R2() * 0.65;
-    var t = 0.03 + R2() * 0.04;
-
-    var bar = mkMesh(new THREE.BoxGeometry(len, t, t), neonMat.clone());
-    bar.position.set(Math.cos(a) * radius, baseY + (R2() - 0.5) * 0.5, Math.sin(a) * radius);
-    bar.rotation.y = a + Math.PI / 2;
-    bar.rotation.x = (R2() - 0.5) * 0.8;
-    g.add(bar);
-  }
-
-  var pl = new THREE.PointLight(col, 1.4, 6.5, 2.2);
-  pl.position.set(0, baseY + 0.3, 0);
-  g.add(pl);
-
-  var shd = makeDropShadow(radius * 1.25, radius * 1.25, 0.42);
-  g.add(shd);
-
-  return g;
-}
-
-// ------ 空調設備 (HVAC unit) ------
-function buildHVAC(R2, H) {
-  var g = new THREE.Group();
-  var type = Math.floor(R2() * 3); // 0=ceiling unit, 1=wall cassette, 2=industrial floor unit
-
-  if (type === 0) {
-    // Ceiling-mount AC — hangs from ceiling
-    var ceilH = H - 0.08;
-    var unitW = 0.85 + R2() * 0.45, unitD = 0.32, unitH = 0.18;
-    var mat = matStd(0xf0eeea, 0.75, 0.04);
-    var body = mkMesh(new THREE.BoxGeometry(unitW, unitH, unitD), mat);
-    body.position.set(0, ceilH - unitH/2, 0); g.add(body);
-    // Vent louvers
-    var nLouvers = 5;
-    for (var li = 0; li < nLouvers; li++) {
-      var louver = mkMesh(new THREE.BoxGeometry(unitW * 0.85, 0.015, 0.07), matStd(0xdddddb, 0.7, 0.0));
-      louver.rotation.x = 0.25;
-      louver.position.set(0, ceilH - unitH + 0.02, unitD/2 - 0.035 - li * 0.05); g.add(louver);
-    }
-    // LED strip
-    var led = mkMesh(new THREE.BoxGeometry(unitW * 0.7, 0.012, 0.01),
-      new THREE.MeshStandardMaterial({color:0x00ccff, emissive:new THREE.Color(0x00ccff), emissiveIntensity:3.0}));
-    led.position.set(0, ceilH - 0.01, unitD/2 + 0.005); g.add(led);
-    var pl = new THREE.PointLight(0x00aaff, 0.5, 2.5, 2.0);
-    pl.position.set(0, ceilH - 0.05, unitD/2 + 0.3); g.add(pl);
-    // Support rods
-    [[-unitW*0.35, 0], [unitW*0.35, 0]].forEach(function(rp) {
-      var rod = mkMesh(new THREE.CylinderGeometry(0.015, 0.015, 0.28, 6), matStd(0x888888, 0.4, 0.7));
-      rod.position.set(rp[0], ceilH + 0.14, rp[1]); g.add(rod);
-    });
-
-  } else if (type === 1) {
-    // Wall cassette
-    var cassW = 0.78, cassH = 0.62, cassD = 0.18;
-    var mountH = 1.8 + R2() * (H - 2.2);
-    var bodyMat = matStd(0xf2f0ed, 0.72, 0.04);
-    var body2 = mkMesh(new THREE.BoxGeometry(cassW, cassH, cassD), bodyMat);
-    body2.position.set(0, mountH, 0); g.add(body2);
-    // Display strip
-    var dpc = document.createElement('canvas'); dpc.width=128; dpc.height=32;
-    var dct = dpc.getContext('2d');
-    dct.fillStyle='#001a1a'; dct.fillRect(0,0,128,32);
-    dct.fillStyle='#00eeff'; dct.font='bold 18px monospace'; dct.textAlign='center';
-    dct.fillText((18 + Math.floor(R2()*8)) + '\u00b0C', 64, 22);
-    var displayMat = new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(dpc),
-      emissive:new THREE.Color(0x00aacc), emissiveIntensity:1.5});
-    var disp2 = mkMesh(new THREE.PlaneGeometry(0.18, 0.045), displayMat);
-    disp2.position.set(cassW*0.22, mountH + cassH*0.28, cassD/2+0.001); g.add(disp2);
-    // Louver slots
-    for (var li2=0; li2<4; li2++) {
-      var lv = mkMesh(new THREE.BoxGeometry(cassW*0.8, 0.018, 0.12), matStd(0xe8e6e2, 0.7, 0.0));
-      lv.rotation.x = 0.3; lv.position.set(0, mountH - cassH*0.15 - li2*0.08, cassD/2 - 0.05); g.add(lv);
-    }
-    // Remote control on floor
-    var remote = mkMesh(new THREE.BoxGeometry(0.06, 0.015, 0.14), matStd(0x222222, 0.8, 0.0));
-    remote.position.set(cassW/2 + 0.2, 0.007, 0.1); g.add(remote);
-
-  } else {
-    // Industrial floor unit — rooftop/mechanical room style
-    var unitW2 = 1.2 + R2()*0.6, unitH2 = 0.85 + R2()*0.45, unitD2 = 0.7 + R2()*0.3;
-    var indMat = matStd(0x3a3a3a, 0.75, 0.15);
-    var body3 = mkMesh(new THREE.BoxGeometry(unitW2, unitH2, unitD2), indMat);
-    body3.position.set(0, unitH2/2, 0); g.add(body3);
-    // Fan grille on face
-    var grilleMat = matStd(0x222222, 0.8, 0.1);
-    var grille2 = mkMesh(new THREE.BoxGeometry(unitW2*0.55, unitH2*0.65, 0.02), grilleMat);
-    grille2.position.set(-unitW2*0.1, unitH2/2, unitD2/2+0.001); g.add(grille2);
-    // Fan blades
-    var fanMat = matStd(0x555555, 0.5, 0.6);
-    for (var fi=0; fi<5; fi++) {
-      var blade = mkMesh(new THREE.BoxGeometry(unitW2*0.22, 0.025, 0.04), fanMat.clone());
-      blade.rotation.z = fi * Math.PI*2/5; blade.position.set(-unitW2*0.1, unitH2/2, unitD2/2+0.012); g.add(blade);
-    }
-    // Pipes sticking out top
-    for (var pi=0; pi<2; pi++) {
-      var pipeH = 0.3 + R2()*0.5;
-      var pipe = mkMesh(new THREE.CylinderGeometry(0.045, 0.045, pipeH, 8), matStd(0x606060,0.5,0.6));
-      pipe.position.set(-unitW2*0.25+pi*unitW2*0.5, unitH2+pipeH/2, 0); g.add(pipe);
-      var capPipe = mkMesh(new THREE.CylinderGeometry(0.07, 0.07, 0.04, 8), matStd(0x444444,0.6,0.5));
-      capPipe.position.set(-unitW2*0.25+pi*unitW2*0.5, unitH2+pipeH, 0); g.add(capPipe);
-    }
-    // Status LED
-    var ledInd = mkMesh(new THREE.SphereGeometry(0.022, 8, 6),
-      new THREE.MeshStandardMaterial({color:0x00ff44, emissive:new THREE.Color(0x00ff44), emissiveIntensity:4.0}));
-    ledInd.position.set(unitW2/2-0.08, unitH2-0.1, unitD2/2+0.001); g.add(ledInd);
-    // Control panel
-    var ctrlMat = matStd(0x2a2a2a, 0.8, 0.05);
-    var ctrl = mkMesh(new THREE.BoxGeometry(0.32, 0.22, 0.01), ctrlMat);
-    ctrl.position.set(unitW2*0.28, unitH2*0.55, unitD2/2+0.002); g.add(ctrl);
-  }
-
-  var shd = makeDropShadow(0.65, 0.65, 0.63);
-  g.add(shd);
-  return g;
 }
 
 // ============================================================
@@ -2243,7 +1588,42 @@ var MEMO_TEXTS = [
   "君へ\n\n会いたかった。\nでも鍵を持っていなかった。\nだから壁をつくった。\n\n——わかるはずの人へ",
   "the echoes arrive\nbefore the sound.\n\ni speak.\nthe echo waits.\nthe echo waits.\nthe echo says something different.",
   "inventory:\n- 1 chair (familiar)\n- 1 window (outside: inside)\n- 1 mirror\n (shows room without me)\n- 1 door (warm to touch)\n- me (unconfirmed)",
-  "3:17am\n\n起きていた。\n天井に何か書いてある。\n読もうとすると\n電気が消える。\n\n内容は知っている気がする。"
+  "3:17am\n\n起きていた。\n天井に何か書いてある。\n読もうとすると\n電気が消える。\n\n内容は知っている気がする。",
+  "day 112\n\nfound a staircase\nthat only goes up.\n\nI have descended it\nthree times.",
+  "扉の数を数えた。\n行きは14枚。\n帰りは9枚。\n\n5枚はどこへ行った。\n\nいや——\n私がどこへ行ったのか。",
+  "MEMO:\n\nthe room at the end\nof the hall\n\nis the same room\nas the one at the start.\n\nbut the clock shows\na different time.\n\nalways 4 minutes ahead.",
+  "誰かがここで\n食事をしていた。\n\nテーブルに皿が二枚。\nまだ温かい。\n\n私はずっと一人で\nここにいる。",
+  "the compass\npoints to the wall.\n\nnot north.\n\nTHE WALL.\n\ni have stopped\nquestioning it.\ni follow the wall now.",
+  "10月某日\n\n窓の外に廊下がある。\nここは三階のはずだ。\n\n廊下を歩く人影が見えた。\n顔はこちらを向いていた。\nずっと向いていた。",
+  "note:\n\nthe blueprints show\n12 rooms.\n\nI have been in\nat least 19.\n\nsome of them\nI have been in before.\n\nnone of them\nfeel like before.",
+  "声が聞こえた。\n名前を呼んでいた。\n\n私の名前ではなかった。\n\nでも振り返った。\n\nなぜ振り返ったのか\nまだわからない。",
+  "EXIT LOG:\nattempt 01 - returned to start\nattempt 02 - returned to start\nattempt 03 - found new room\nattempt 04 - [unknown]\nattempt 05 - writing this\n\n(this is not the start)",
+  "壁に文字が刻まれていた。\n\n读んだ。\n意味はわからなかった。\n\n翌朝、自分の手に\n同じ文字があった。\n\n筆跡は私のものだった。",
+  "the shadows here\ndo not match\nthe lights.\n\nI drew a map\nof the shadows instead.\n\nit looks like\na floor plan.\n\na different building.",
+  "記録 —— 通路Cについて\n\n長さ：測定不能\n温度：廊下より2度低い\n音：自分の足音のみ\n　　（ただし歩数が合わない）\n\n次の調査は見合わせる。",
+  "she left a note\non the door.\n\nit said:\n'don't look for the window'\n\nthere are no windows\nin this building.\n\nthere never were.\n\nI have been\nlooking for the window.",
+  "今日発見したこと：\n\nこの建物には影がない。\n外から見ると\nたしかにそこにある。\n\nでも地面に影が落ちない。\n\n私の影も\n最近薄くなった気がする。",
+  "day 89\n\nI counted the steps\nbetween room 7 and room 8.\n\nThere were 47.\n\nYesterday there were 31.\n\nTomorrow I might not reach it at all.",
+"鏡に映る私は\nいつも半歩遅れて動く。\n\n今朝、初めて\n私が先に動いた。\n\n鏡の中の私は\nまだ動いていない。",
+"夜中に目が覚めた。\n誰かが私の名前を\n小声で呼んでいた。\n\nでもこの建物に\n私の名前を知っている人は\nいないはずだ。",
+"FOUND:\n- a pair of glasses\n  (prescription matches mine)\n- a watch stopped at 4:12\n- my own handwriting\n  on a note I don't remember writing\n\nLOST:\n- the concept of 'outside'",
+"この廊下は\n曲がり角が多すぎる。\n\n地図では直線のはずなのに。\n\n曲がるたび、\n自分の背後から\n自分の足音が聞こえる。",
+"4時を過ぎると\n電灯が全部\n赤みを帯びる。\n\n理由はわからない。\n\nただ、その赤い光の下では\n自分の手が\n誰かの手のように見える。",
+"note to self:\n\ndo not drink from the faucet\nin the blue bathroom.\n\nthe water tastes like\nmy childhood bedroom.\n\nI have never lived\nin a blue bathroom.",
+"階段を上っているのに\n窓の外の景色が\nどんどん下に沈んでいく。\n\n私はまだ上っている。\n\nそれとも建物の方が\n沈んでいるのか。",
+"壁に耳を当ててみた。\n\n向こう側で\n誰かが同じように\n壁に耳を当てていた。\n\n息のタイミングが\n完全に一致した。",
+"今日、部屋の隅に\n自分のコートが落ちていた。\n\n私は今もコートを着ている。\n\n二着目だ。\n\n中にはまだ体温が残っていた。",
+"the clock in the lobby\nhas no hands.\n\nyet every hour\nI hear it chime.\n\n13 times.",
+"通路の端に\n「ここから先は戻れない」\nと書かれた札が下がっていた。\n\n私はその札を\n昨日も見た。\n\n場所が違っていた。",
+"夢の中でこの建物の\n完全な設計図を見た。\n\n起きたらポケットに\n同じ設計図が入っていた。\n\nただし、私のいる位置に\n×印が書かれていた。",
+"声がする。\n『もう帰ろう』と。\n\nでも私はまだ\nここに来た覚えがない。\n\n帰るところなど\n最初からなかったのに。",
+"inventory update:\n- 1 shadow (mine?)\n- 17 doors that lead to the same corridor\n- 1 memory that doesn't belong to me\n- the feeling that I'm late for something\n  I never agreed to",
+"午前2時\n\n天井から\nゆっくりと\n私の名前が落ちてきた。\n\n文字はまだ湿っていた。",
+"この部屋の家具は\n全部私が生まれる前に\n作られたものだ。\n\nなのに傷や汚れが\n私の生活の痕跡と\n完全に一致する。",
+"I tried to leave a trail\nof breadcrumbs.\n\nthey disappeared one by one.\n\nthen I found them\narranged into an arrow\npointing deeper inside.",
+"日付が変わる瞬間、\nすべての部屋の扉が\n同時にノックされた。\n\n私はどの部屋にも\nいなかったはずなのに。",
+"壁紙の模様が\n少しずつ私の記憶を\n再現し始めている。\n\n今朝、子供の頃の\n飼っていた犬の姿が\n浮かび上がっていた。\n\n犬は私を見ていた。",
+"最後に見た出口の札には\n『出口まであと 0m』\nと書いてあった。\n\nそれから何時間歩いても\nまだ『あと 0m』のまま。"
 ];
 
 function buildMemoNote(R2) {
@@ -2281,7 +1661,6 @@ function buildMemoNote(R2) {
 // ============================================================
 var roomInteractables = [];  // { type, worldPos, data, mesh, alive }
 var activeBeams = [];        // { mesh, dir, speed, age }
-var _lockedCreatures = [];   // テザー捕獲中のクリーチャー
 var activeWaterSurfaces = []; // { rippleCv, rippleCx, rippleTex, causticLight, spouts, phase, sources }
 
 var memoPopupEl   = document.getElementById('memo-popup');
@@ -2290,6 +1669,8 @@ var shootBtnEl    = document.getElementById('shoot-btn');
 var crosshairEl   = document.getElementById('crosshair-hit');
 
 function clearInteractables() {
+  /* 飛び道具・チャージエフェクトをプールに返却 */
+  if (typeof clearCreatureAttacks === 'function') clearCreatureAttacks();
   // ★ クリーチャー音声ノードを先に切断してからリセット（WebAudioリーク防止）
   for (var _cai = 0; _cai < roomInteractables.length; _cai++) {
     _releaseCreatureAudio(roomInteractables[_cai]);
@@ -2303,12 +1684,8 @@ function clearInteractables() {
     }
   }
   activeWaterSurfaces = [];
-  // ロック中クリーチャーのテザー・ライトを解放
-  for (var _cli = 0; _cli < _lockedCreatures.length; _cli++) {
-    _releaseTether(_lockedCreatures[_cli].tetherEntry);
-    _releaseBeamLight(_lockedCreatures[_cli].lightEntry);
-  }
-  _lockedCreatures = [];
+  // ロック中クリーチャーのテザー・ライトを解放（combat.js管理）
+  clearLockedCreatures();
   memoPopupEl.classList.remove('visible');
   memoLabelEl.classList.remove('visible');
   shootBtnEl.classList.remove('visible');
@@ -2316,27 +1693,24 @@ function clearInteractables() {
 }
 
 function registerInteractable(type, worldX, worldY, worldZ, data, mesh) {
-  // isMegaMarshmallow と射程を登録時に一度だけ計算（3箇所の重複判定を排除）
-  var isMega   = !!(data && data.isMegaMarshmallow);
   var isInsect = !!(mesh && mesh.userData && mesh.userData.isInsect);
   /* ── モデル実寸 bodyH を取得し当たり判定半径を計算 ── */
   var bodyH = (mesh && mesh.userData && mesh.userData.bodyH)
               ? mesh.userData.bodyH
-              : (isMega ? 14.0 : (isInsect ? 0.7 : 1.2));
+              : (isInsect ? 0.7 : 1.2);
   var it = {
-    type:              type,
-    pos:               new THREE.Vector3(worldX, worldY, worldZ),
-    data:              data,
-    mesh:              mesh,
-    alive:             true,
-    isMegaMarshmallow: isMega,
-    bodyH:             bodyH,
+    type:       type,
+    pos:        new THREE.Vector3(worldX, worldY, worldZ),
+    data:       data,
+    mesh:       mesh,
+    alive:      true,
+    bodyH:      bodyH,
     /* aimRange / shootRange はモデル高さに比例させる */
-    aimRange:   isMega ? 90.0  : Math.max(12.0, bodyH * 10.0),
-    shootRange: isMega ? 80.0  : Math.max(10.0, bodyH *  9.0),
+    aimRange:   Math.max(12.0, bodyH * 10.0),
+    shootRange: Math.max(10.0, bodyH *  9.0),
     /* sdLimit は fireBeam / updateInteractables で distance から動的計算するため
        ここでは最大値のみ保持（極近距離での上限として使用）*/
-    sdLimit:    isMega ? 0.75  : 0.90
+    sdLimit:    0.90
   };
   roomInteractables.push(it);
   // Try to attach audio immediately; if _audioReady is still false,
@@ -2344,362 +1718,6 @@ function registerInteractable(type, worldX, worldY, worldZ, data, mesh) {
   if (type === 'creature') _attachCreatureAudio(it);
 }
 
-// ================================================================
-//  捕獲ビームシステム（プラズマジグザグ方式）
-//  発射と同時にプレイヤー→生物までランダムジグザグ電撃が繋がり
-//  びびびびと振動しながら引き寄せる
-// ================================================================
-
-// ---- ライトプール（プラズマ用 4 + フラッシュ用 4）----
-var _beamLightPool = [];
-var _flashLightPool = [];
-
-// ---- プラズマジグザグライン プール ----
-// 各スロット：3本のストランド（オレンジ・シアン・白黄）× N=18セグメント
-var _tetherPool = [];
-var _PLASMA_N = 12; // セグメント数（端点含む）※18→12で負荷約33%減、見た目ほぼ同等
-
-(function() {
-  var i, j;
-  // プラズマ照明ライト
-  for (i = 0; i < 4; i++) {
-    var bl = new THREE.PointLight(0xff6600, 0, 8.0, 1.8);
-    bl.visible = false; scene.add(bl);
-    _beamLightPool.push({ light: bl, inUse: false });
-  }
-  // 捕獲フラッシュライト
-  for (i = 0; i < 4; i++) {
-    var fl = new THREE.PointLight(0xff8833, 0, 10.0, 2.0);
-    fl.visible = false; scene.add(fl);
-    _flashLightPool.push({ light: fl, age: 0, duration: 0, inUse: false });
-  }
-
-  // ジグザグライン（9本ストランド = 3グループ×3サブライン × 4スロット）
-  var strandColors = [
-    0xff4400, 0xff4400, 0xff4400,  // グループ0（オレンジ）
-    0x00ccff, 0x00ccff, 0x00ccff,  // グループ1（シアン）
-    0xffee44, 0xffee44, 0xffee44   // グループ2（イエロー）
-  ];
-  for (i = 0; i < 4; i++) {
-    var strands = [];
-    for (var s = 0; s < 9; s++) {
-      var pts = [];
-      for (j = 0; j < _PLASMA_N; j++) pts.push(new THREE.Vector3());
-      var geo = new THREE.BufferGeometry().setFromPoints(pts);
-      var mat = new THREE.LineBasicMaterial({
-        color: strandColors[s], transparent: true, opacity: 0.0
-      });
-      var line = new THREE.Line(geo, mat);
-      line.frustumCulled = false;
-      line.visible = false;
-      scene.add(line);
-      strands.push({ line: line, geo: geo, mat: mat });
-    }
-    _tetherPool.push({ strands: strands, inUse: false });
-  }
-})();
-
-// ---- 毎フレーム再利用するスクラッチ Vector3（GC負荷削減）----
-var _v3_camDir   = new THREE.Vector3();
-var _v3_camRight = new THREE.Vector3();
-var _v3_gunPos   = new THREE.Vector3();
-var _v3_cp       = new THREE.Vector3();
-
-function _acquireBeamLight() {
-  for (var i = 0; i < _beamLightPool.length; i++) {
-    if (!_beamLightPool[i].inUse) {
-      _beamLightPool[i].inUse = true;
-      _beamLightPool[i].light.visible = true;
-      _beamLightPool[i].light.intensity = 6.0;
-      return _beamLightPool[i];
-    }
-  }
-  return null;
-}
-function _releaseBeamLight(pe) {
-  if (!pe) return;
-  pe.light.intensity = 0; pe.light.visible = false; pe.inUse = false;
-}
-function _acquireTether() {
-  for (var i = 0; i < _tetherPool.length; i++) {
-    if (!_tetherPool[i].inUse) {
-      _tetherPool[i].inUse = true;
-      for (var s = 0; s < 9; s++) {
-        _tetherPool[i].strands[s].line.visible = true;
-        _tetherPool[i].strands[s].mat.opacity = 0.0;
-      }
-      return _tetherPool[i];
-    }
-  }
-  return null;
-}
-function _releaseTether(te) {
-  if (!te) return;
-  for (var s = 0; s < 9; s++) {
-    te.strands[s].line.visible = false;
-    te.strands[s].mat.opacity = 0.0;
-  }
-  te.inUse = false;
-}
-
-// ジグザグプラズマライン頂点を毎フレーム完全ランダム生成
-function _updatePlasmaZigzag(te, from, to, age, alpha) {
-  var N = _PLASMA_N;
-  var dx = to.x - from.x, dy = to.y - from.y, dz = to.z - from.z;
-  var len = Math.sqrt(dx*dx + dy*dy + dz*dz) || 0.001;
-
-  // 法線基底（ビーム方向に垂直な2軸）
-  var ux = -dz / len, uy = 0, uz = dx / len;
-  var ul = Math.sqrt(ux*ux + uz*uz);
-  if (ul < 0.001) { ux = 1; uy = 0; uz = 0; } else { ux /= ul; uz /= ul; }
-  var vx = dy*uz - dz*uy, vy = dz*ux - dx*uz, vz = dx*uy - dy*ux;
-  var vl = Math.sqrt(vx*vx + vy*vy + vz*vz);
-  if (vl > 0.001) { vx /= vl; vy /= vl; vz /= vl; }
-
-  // 興奮度：時間とともに振れ幅が増す
-  var excitement = Math.min(1.0, age * 0.8);
-  var baseAmp = (0.12 + excitement * 0.22) * Math.min(len, 4.0) / 4.0;
-
-  var groupOpacities = [
-    alpha * (0.85 + Math.sin(age * 47) * 0.12),
-    alpha * (0.6  + Math.sin(age * 38 + 1.4) * 0.25),
-    alpha * (0.5  + Math.sin(age * 29 + 2.7) * 0.28)
-  ];
-
-  // ストランドオフセット（グループごとに別方向に広がる）
-  var groupBias = [
-    { u:  0.04, v:  0.0 },
-    { u: -0.04, v:  0.06 },
-    { u:  0.02, v: -0.06 }
-  ];
-
-  // カメラright方向（サブライン太さオフセット用）
-  camera.getWorldDirection(_v3_camDir);
-  _v3_camRight.crossVectors(_v3_camDir, camera.up).normalize();
-
-  // サブライン間隔（3本で±0.006 world units = 見た目1〜3px相当）
-  var subOffsets = [-0.006, 0.0, 0.006];
-
-  // 各グループのランダム太さ（1〜3本）を毎フレーム決定 → ちらつき効果
-  var groupWidth = [
-    Math.floor(Math.random() * 3) + 1,
-    Math.floor(Math.random() * 3) + 1,
-    Math.floor(Math.random() * 3) + 1
-  ];
-
-  for (var s = 0; s < 9; s++) {
-    var grp = Math.floor(s / 3);  // 0, 1, 2
-    var sub = s % 3;               // 0, 1, 2（サブラインインデックス）
-
-    var strand = te.strands[s];
-
-    // このグループの太さに収まらないサブラインは非表示
-    if (sub >= groupWidth[grp]) {
-      strand.mat.opacity = 0.0;
-      strand.line.visible = false;
-      continue;
-    }
-    strand.line.visible = true;
-
-    var pos = strand.geo.attributes.position;
-    var bias = groupBias[grp];
-    var soX = _v3_camRight.x * subOffsets[sub];
-    var soY = _v3_camRight.y * subOffsets[sub];
-    var soZ = _v3_camRight.z * subOffsets[sub];
-
-    // 端点は固定
-    pos.setXYZ(0,
-      from.x + ux*bias.u + vx*bias.v + soX,
-      from.y + uy*bias.u + vy*bias.v + soY,
-      from.z + uz*bias.u + vz*bias.v + soZ);
-    pos.setXYZ(N-1,
-      to.x + soX,
-      to.y + soY,
-      to.z + soZ);
-
-    // 中間点：完全ランダムジグザグ（毎フレーム再生成 = びびびび）
-    for (var j = 1; j < N-1; j++) {
-      var t = j / (N - 1);
-      var bx = from.x + dx*t;
-      var by = from.y + dy*t;
-      var bz = from.z + dz*t;
-
-      var env = Math.sin(t * Math.PI);
-      var amp = baseAmp * env;
-
-      var offU = (Math.random() - 0.5) * 2.2 * amp;
-      var offV = (Math.random() - 0.5) * 2.2 * amp;
-
-      pos.setXYZ(j,
-        bx + ux*(offU + bias.u*env) + vx*(offV + bias.v*env) + soX,
-        by + uy*(offU + bias.u*env) + vy*(offV + bias.v*env) + soY,
-        bz + uz*(offU + bias.u*env) + vz*(offV + bias.v*env) + soZ
-      );
-    }
-    pos.needsUpdate = true;
-    strand.mat.opacity = groupOpacities[grp];
-  }
-}
-
-// ---- 捕獲中クリーチャー管理 ----
-
-function _lockCreature(itc) {
-  if (itc.locked) return;
-  itc.locked = true;
-  itc.alive  = false;
-
-  startBeamSound(); // ← ビーム音スタート
-
-  var te  = _acquireTether();
-  var ble = _acquireBeamLight();
-
-  _lockedCreatures.push({
-    itc:        itc,
-    tetherEntry:te,
-    lightEntry: ble,
-    age:        0,
-    startDist:  itc.pos.distanceTo(camera.position),
-    jitterX: 0, jitterY: 0, jitterZ: 0,
-    jitterAcc: 0
-  });
-}
-
-function _finishCapture(lc) {
-  var itc = lc.itc;
-  _releaseTether(lc.tetherEntry);
-  if (lc.lightEntry) _releaseBeamLight(lc.lightEntry);
-
-  // 捕獲フラッシュ
-  for (var fi = 0; fi < _flashLightPool.length; fi++) {
-    if (!_flashLightPool[fi].inUse) {
-      var fp = _flashLightPool[fi];
-      fp.light.position.copy(itc.pos);
-      fp.light.intensity = 22.0;
-      fp.light.color.set(0xff7700);
-      fp.light.visible = true;
-      fp.inUse = true; fp.age = 0; fp.duration = 0.5;
-      break;
-    }
-  }
-
-  if (itc.mesh && itc.mesh.parent) itc.mesh.parent.remove(itc.mesh);
-  else if (itc.mesh) scene.remove(itc.mesh);
-
-  var capturedId = (itc.data && itc.data.creatureId !== undefined)
-    ? itc.data.creatureId
-    : Math.floor(Math.random() * CREATURE_DATA.length);
-  updateCollection(capturedId);
-  showCaptureNotification(capturedId);
-  stopBeamSound(); // ← ビーム音を止めてから捕獲音を鳴らす
-  playSoundCapture();
-}
-
-// ロック中クリーチャーを毎フレーム更新
-function updateLockedCreatures(dt) {
-  for (var li = _lockedCreatures.length - 1; li >= 0; li--) {
-    var lc = _lockedCreatures[li];
-    lc.age += dt;
-
-    var itc = lc.itc;
-    var camPos = camera.position;
-
-    // ── クリーチャーのジッター（捕まれた抵抗感）──
-    lc.jitterAcc += dt;
-    if (lc.jitterAcc > 0.02) {
-      lc.jitterAcc = 0;
-      var jAmp = 0.05 + Math.min(0.18, lc.age * 0.05);
-      lc.jitterX = (Math.random() - 0.5) * jAmp * 2;
-      lc.jitterY = (Math.random() - 0.5) * jAmp;
-      lc.jitterZ = (Math.random() - 0.5) * jAmp * 2;
-    }
-
-    // ── プレイヤーへ引き寄せ（加速付き）──
-    var dist = itc.pos.distanceTo(camPos);
-    var pullT = Math.min(1.0, lc.age / 2.0);
-    var pullSpeed = (0.05 + pullT * pullT * 0.32) * dt * 60;
-    var toDirX = camPos.x - itc.pos.x;
-    var toDirY = (camPos.y - 0.4) - itc.pos.y;
-    var toDirZ = camPos.z - itc.pos.z;
-    var toDirLen = Math.sqrt(toDirX*toDirX + toDirY*toDirY + toDirZ*toDirZ);
-    if (toDirLen > 0.01) {
-      itc.pos.x += (toDirX / toDirLen) * pullSpeed;
-      itc.pos.y += (toDirY / toDirLen) * pullSpeed;
-      itc.pos.z += (toDirZ / toDirLen) * pullSpeed;
-    }
-
-    // メッシュ位置 = 引き寄せ位置 + ジッター
-    if (itc.mesh) {
-      itc.mesh.position.set(
-        itc.pos.x + lc.jitterX,
-        itc.pos.y + lc.jitterY,
-        itc.pos.z + lc.jitterZ
-      );
-      itc.mesh.rotation.y += (Math.random() - 0.5) * 0.28;
-      itc.mesh.rotation.z  = (Math.random() - 0.5) * 0.20;
-    }
-
-    // ── プラズマジグザグライン更新（毎フレームびびびび）──
-    if (lc.tetherEntry) {
-      var gunPos = _v3_gunPos.set(0, 0, -1).applyEuler(camera.rotation);
-      gunPos.multiplyScalar(0.6).add(camPos);
-      gunPos.y -= 0.18;
-
-      var alpha;
-      if (lc.age < 0.1) {
-        alpha = lc.age / 0.1;
-      } else if (dist < 1.8) {
-        alpha = Math.max(0, dist / 1.8);
-      } else {
-        alpha = 0.82 + Math.sin(lc.age * 55.0) * 0.18;
-      }
-
-      _updatePlasmaZigzag(lc.tetherEntry, gunPos, itc.pos, lc.age, alpha);
-
-      if (lc.lightEntry) {
-        var midX = (gunPos.x + itc.pos.x) * 0.5;
-        var midY = (gunPos.y + itc.pos.y) * 0.5;
-        var midZ = (gunPos.z + itc.pos.z) * 0.5;
-        lc.lightEntry.light.position.set(midX, midY, midZ);
-        lc.lightEntry.light.color.set(0xff5500);
-        lc.lightEntry.light.intensity = 4.0 + Math.sin(lc.age * 58.0) * 2.8;
-      }
-    }
-
-    // ── 捕獲完了 ──
-    if (dist < 0.9 || lc.age > 4.0) {
-      _finishCapture(lc);
-      _lockedCreatures.splice(li, 1);
-    }
-  }
-}
-
-// ---- fireBeam：弾丸なし、即プラズマ接続 ----
-function fireBeam() {
-  if (transitioning) return;
-  _resumeAudioCtx();
-  // 照準内のもっとも近い生物を探して即ロック
-  // sdLimit は距離に応じて動的計算: bodyH / (d * tan(FOV/2))
-  // FOV=72° → tan(36°)≈0.727  半径=bodyH*0.5*1/0.727/d ≈ bodyH*0.688/d
-  // 少し余裕(×1.4)を持たせて bodyH / d
-  var best = null, bestDist = Infinity;
-  for (var ci = 0; ci < roomInteractables.length; ci++) {
-    var itc = roomInteractables[ci];
-    if (itc.type !== 'creature' || !itc.alive || itc.locked) continue;
-    var d = camera.position.distanceTo(itc.pos);
-    _v3_cp.copy(itc.pos).project(camera);
-    var sd = Math.sqrt(_v3_cp.x*_v3_cp.x + _v3_cp.y*_v3_cp.y);
-    var dynSd = Math.min(itc.sdLimit, itc.bodyH / Math.max(1.5, d));
-    if (sd < dynSd && _v3_cp.z < 1.0 && d < itc.shootRange && d < bestDist) {
-      best = itc; bestDist = d;
-    }
-  }
-  if (best) {
-    _lockCreature(best);
-    // 発射の軽い反動
-    _v3_gunPos.set(0, 0, -1).applyEuler(camera.rotation);
-    camera.position.addScaledVector(_v3_gunPos, -0.03);
-  }
-}
 
 shootBtnEl.addEventListener('click', fireBeam);
 shootBtnEl.addEventListener('touchend', function(e) { e.preventDefault(); fireBeam(); }, {passive:false});
@@ -2745,38 +1763,46 @@ function updateInteractables(dt) {
       if (it.mesh) {
         var ud = it.mesh.userData;
         ud.phase = (ud.phase || 0) + dt * 1.2;
-        it.mesh.position.y = ud.baseY + Math.sin(ud.phase) * 0.06;
+
+        var _distToCam = it.mesh.position.distanceTo(camPos);
+        var _nearAnim  = _distToCam < 22.0;  /* 22m以内のみフル更新 */
+
+        if (_nearAnim) {
+          it.mesh.position.y = ud.baseY + Math.sin(ud.phase) * 0.06;
+        }
 
         // Eye flicker
-        if (ud.eyePl) {
+        if (_nearAnim && ud.eyePl) {
           ud.eyePl.intensity = 1.2 + Math.sin(ud.phase * 3.1) * 0.4;
         }
 
         // ---- Insect-specific: leg scurry animation + player reaction ----
         if (ud.isInsect) {
-          // Leg animation (カサカサ)
-          var lms = ud.legMeshes;
-          if (lms) {
-            var spd = ud.isAlert ? 9.5 : 5.8;
-            var amp = ud.isAlert ? 0.32 : 0.22;
-            for (var lii = 0; lii < lms.length; lii++) {
-              var lm = lms[lii];
-              var lph = ud.phase * spd + lm.userData.legPhaseOffset;
-              lm.rotation.x = Math.sin(lph) * amp;
+          // Leg animation (カサカサ) — 近くのみ
+          if (_nearAnim) {
+            var lms = ud.legMeshes;
+            if (lms) {
+              var spd = ud.isAlert ? 9.5 : 5.8;
+              var amp = ud.isAlert ? 0.32 : 0.22;
+              for (var lii = 0; lii < lms.length; lii++) {
+                var lm = lms[lii];
+                var lph = ud.phase * spd + lm.userData.legPhaseOffset;
+                lm.rotation.x = Math.sin(lph) * amp;
+              }
             }
-          }
-          // Eye glow pulse (red)
-          if (ud.eyeMeshes && ud.eyeMeshes.length) {
-            var baseInt = ud.eyeEmissiveBase || 8.0;
-            var eyePulse = 1.0 + Math.sin(ud.phase * 10.0) * (ud.isAlert ? 0.35 : 0.22);
-            var eyeInt = baseInt * eyePulse;
-            for (var ei = 0; ei < ud.eyeMeshes.length; ei++) {
-              var em = ud.eyeMeshes[ei];
-              if (em && em.material) em.material.emissiveIntensity = eyeInt;
+            // Eye glow pulse (red)
+            if (ud.eyeMeshes && ud.eyeMeshes.length) {
+              var baseInt = ud.eyeEmissiveBase || 8.0;
+              var eyePulse = 1.0 + Math.sin(ud.phase * 10.0) * (ud.isAlert ? 0.35 : 0.22);
+              var eyeInt = baseInt * eyePulse;
+              for (var ei = 0; ei < ud.eyeMeshes.length; ei++) {
+                var em = ud.eyeMeshes[ei];
+                if (em && em.material) em.material.emissiveIntensity = eyeInt;
+              }
             }
           }
           // Player proximity reaction
-          var dToPlayer = it.mesh.position.distanceTo(camPos);
+          var dToPlayer = _distToCam;
           if (dToPlayer < 8.0) {
             ud.isAlert = true;
             // Face toward/away from player
@@ -2813,7 +1839,7 @@ function updateInteractables(dt) {
         }
 
         // ---- Crystal: コア回転 + 発光パルス ----
-        if (ud.isCrystal) {
+        if (_nearAnim && ud.isCrystal) {
           if (ud.coreRef) {
             ud.coreRef.rotation.y = ud.phase * 0.8;
             ud.coreRef.rotation.z = Math.sin(ud.phase * 0.55) * 0.35;
@@ -2824,7 +1850,7 @@ function updateInteractables(dt) {
         }
 
         // ---- Blob: 呼吸スケール + 内核グロウ ----
-        if (ud.isBlob) {
+        if (_nearAnim && ud.isBlob) {
           if (ud.mainBlobRef) {
             var bScl = 1.0 + Math.sin(ud.phase * 2.1) * 0.07;
             ud.mainBlobRef.scale.y = bScl;
@@ -2839,20 +1865,20 @@ function updateInteractables(dt) {
         }
 
         // ---- Wire: ノードフリッカー ----
-        if (ud.isWire) {
+        if (_nearAnim && ud.isWire) {
           if (ud.eyePl) {
             ud.eyePl.intensity = 1.2 + Math.abs(Math.sin(ud.phase * 6.0)) * 1.8;
           }
         }
 
         // ---- GLB Ghost: シェーダー uTime 更新 ----
-        if (ud.isGLBGhost) {
+        if (_nearAnim && ud.isGLBGhost) {
           if (ud.ghostBodyMat) ud.ghostBodyMat.uniforms.uTime.value = ud.phase;
           if (ud.ghostGlowMat) ud.ghostGlowMat.uniforms.uTime.value = ud.phase;
         }
 
-        // ---- Slime: MarchingCubesメタボールアニメ ----
-        if (ud.isSlime && ud.mcRef) {
+        // ---- Slime: MarchingCubesメタボールアニメ（22m以内のみ、非常に重い）----
+        if (_nearAnim && ud.isSlime && ud.mcRef) {
           var slimeMC = ud.mcRef;
           slimeMC.reset();
           // 中心ブロブ (呼吸パルス)
@@ -2936,320 +1962,25 @@ function updateInteractables(dt) {
   crosshairEl.classList.toggle('aimed', showShoot);
 }
 
+/* ----------------------------------------------------------
+   GLBプロップ定数 — room_patches.js の buildGLBProp が参照する
+---------------------------------------------------------- */
+/* プロップ名 → ターゲットサイズ（m）の対応表 */
+var GLB_PROP_SIZES = {
+  sofa1: 2.2,  sofa2: 2.0,  sofa3: 2.4,  sofa4: 2.1,
+  table1: 1.5, table2: 1.6, table3: 1.4, table4: 1.7,
+  bench: 1.8,  wooden_storage_shelf: 2.0,
+  taru: 1.2,   kusa: 1.2,   beach_ball: 0.8,
+  traffic_cone: 0.8, barrier: 1.8, bird: 0.5, swing: 3.2,
+  kaidan: 3.0, house: 6.0,  bus: 8.0
+};
 
-// ------ 配管クラスター (industrial pipes) ------
-function buildPipeCluster(R2, H) {
-  var g = new THREE.Group();
-  var pipes = 3 + Math.floor(R2() * 5);
-  var metalMat  = matStd(0x888888, 0.35, 0.85);
-  var rustMat   = matStd(0x6a3a1a, 0.80, 0.50);
-  var yellowMat = matStd(0xddaa00, 0.55, 0.45);
-  var mats = [metalMat, metalMat, metalMat, rustMat, yellowMat];
-  var i, pr, ph, px, pz, mat, pipe, angle;
-  for (i = 0; i < pipes; i++) {
-    pr  = 0.045 + R2() * 0.09;
-    ph  = 0.8   + R2() * (H * 0.9);
-    px  = (R2() - 0.5) * 1.4;
-    pz  = (R2() - 0.5) * 0.5;
-    mat = mats[Math.floor(R2() * mats.length)];
-    pipe = mkMesh(new THREE.CylinderGeometry(pr, pr, ph, 10), mat);
-    pipe.position.set(px, ph / 2, pz); g.add(pipe);
-    // Flange rings
-    [[0.06, ph * 0.15], [0.06, ph * 0.75]].forEach(function(f) {
-      var fl = mkMesh(new THREE.CylinderGeometry(pr * 2.0, pr * 2.0, f[0], 12), mat.clone());
-      fl.position.set(px, f[1], pz); g.add(fl);
-    });
-    // Horizontal branch off ~halfway
-    if (R2() > 0.45) {
-      var hw = 0.5 + R2() * 1.8;
-      var horiz = mkMesh(new THREE.CylinderGeometry(pr * 0.85, pr * 0.85, hw, 10), mat.clone());
-      horiz.rotation.z = Math.PI / 2;
-      angle = (R2() > 0.5 ? 1 : -1);
-      horiz.position.set(px + angle * hw / 2, ph * (0.45 + R2() * 0.35), pz); g.add(horiz);
-      // elbow sphere
-      var el = mkMesh(new THREE.SphereGeometry(pr * 1.3, 12, 8), mat.clone());
-      el.position.set(px + angle * hw, ph * (0.45 + R2() * 0.35), pz); g.add(el);
-    }
-    // Pressure gauge on some pipes
-    if (R2() > 0.6) {
-      var gaugeY = ph * (0.55 + R2() * 0.25);
-      var gaugeStem = mkMesh(new THREE.CylinderGeometry(0.015, 0.015, 0.12, 8), mat.clone());
-      gaugeStem.rotation.z = Math.PI / 2;
-      gaugeStem.position.set(px + pr * 2.5, gaugeY, pz); g.add(gaugeStem);
-      var gaugeFace = mkMesh(new THREE.CylinderGeometry(0.09, 0.09, 0.04, 20), matStd(0xdddddd, 0.6, 0.05));
-      gaugeFace.rotation.z = Math.PI / 2;
-      gaugeFace.position.set(px + pr * 2.5 + 0.1, gaugeY, pz); g.add(gaugeFace);
-    }
-  }
-  // Valve wheel on one pipe
-  var vx = (R2() - 0.5) * 1.0, vr = 0.18 + R2() * 0.12;
-  var valveMat = matStd(0x555555, 0.5, 0.6);
-  var valveTorus = mkMesh(new THREE.TorusGeometry(vr, 0.022, 8, 28), valveMat);
-  valveTorus.position.set(vx - 0.35, 1.0 + R2() * 0.6, 0);
-  valveTorus.rotation.x = Math.PI / 2; g.add(valveTorus);
-  for (var sp = 0; sp < 4; sp++) {
-    var spoke = mkMesh(new THREE.CylinderGeometry(0.014, 0.014, vr * 2, 6), valveMat.clone());
-    spoke.rotation.z = Math.PI / 2; spoke.rotation.y = sp * Math.PI / 4;
-    spoke.position.set(vx - 0.35, 1.0 + R2() * 0.6, 0); g.add(spoke);
-  }
-  var shd = makeDropShadow(1.1, 1.1, 0.56);
-  g.add(shd);
-  return g;
-}
-
-// ------ VHS感あるもの (VCR unit with glitch screen) ------
-function buildVHSUnit(R2) {
-  var g = new THREE.Group();
-  // VCR / deck body
-  var W = 1.1, H = 0.28, D = 0.65;
-  var bodyMat = matStd(0x1a1a18, 0.82, 0.04);
-  var body = mkMesh(new THREE.BoxGeometry(W, H, D), bodyMat);
-  body.position.y = H / 2; g.add(body);
-  // Cassette slot
-  var slotMat = matStd(0x080808, 0.9, 0.0);
-  var slot = mkMesh(new THREE.BoxGeometry(W * 0.52, H * 0.28, 0.04), slotMat);
-  slot.position.set(-W * 0.08, H * 0.72, D / 2 + 0.001); g.add(slot);
-  // Counter display (glitchy canvas)
-  var dcv = document.createElement('canvas');
-  dcv.width = 160; dcv.height = 48;
-  var dcx = dcv.getContext('2d');
-  dcx.fillStyle = '#001108'; dcx.fillRect(0, 0, 160, 48);
-  // Segment display glow
-  dcx.fillStyle = '#00ff88';
-  dcx.font = 'bold 28px monospace';
-  dcx.textAlign = 'center'; dcx.textBaseline = 'middle';
-  var ctr = Math.floor(Math.random() * 9999);
-  dcx.fillText(String(ctr).padStart(4, '0'), 80, 26);
-  // Scanline overlay
-  for (var sl = 0; sl < 48; sl += 3) {
-    dcx.fillStyle = 'rgba(0,0,0,0.25)';
-    dcx.fillRect(0, sl, 160, 1);
-  }
-  var dispMat = new THREE.MeshStandardMaterial({
-    map: new THREE.CanvasTexture(dcv),
-    emissive: new THREE.Color(0x002211), emissiveIntensity: 1.2,
-    roughness: 0.3
-  });
-  var disp = mkMesh(new THREE.PlaneGeometry(W * 0.28, H * 0.3), dispMat);
-  disp.position.set(W * 0.22, H * 0.72, D / 2 + 0.002); g.add(disp);
-  // Buttons row
-  var btnMat = matStd(0x2a2a28, 0.7, 0.1);
-  for (var bi = 0; bi < 5; bi++) {
-    var btn = mkMesh(new THREE.BoxGeometry(0.055, 0.04, 0.04), btnMat.clone());
-    btn.position.set(-W * 0.3 + bi * 0.075, H * 0.38, D / 2 + 0.022); g.add(btn);
-  }
-  // Monitor on top (CRT-style small monitor)
-  var monW = 0.88, monH = 0.72, monD = 0.62;
-  var monMat = matStd(0x1e1c18, 0.80, 0.05);
-  var monBody = mkMesh(new THREE.BoxGeometry(monW, monH, monD), monMat);
-  monBody.position.y = H + monH / 2 + 0.02; g.add(monBody);
-  // CRT screen bezel
-  var bezelMat = matStd(0x141412, 0.85, 0.0);
-  var bezel = mkMesh(new THREE.BoxGeometry(monW * 0.84, monH * 0.78, 0.025), bezelMat);
-  bezel.position.set(0, H + monH / 2 + 0.02, monD / 2 + 0.003); g.add(bezel);
-  // VHS screen — static + scanlines
-  var scv2 = document.createElement('canvas');
-  scv2.width = 320; scv2.height = 240;
-  var scx2 = scv2.getContext('2d');
-  // Base color – washed-out grey-green VHS look
-  scx2.fillStyle = '#0a0a08'; scx2.fillRect(0, 0, 320, 240);
-  // Static noise
-  for (var nx = 0; nx < 320; nx += 2) {
-    for (var ny = 0; ny < 240; ny += 2) {
-      var nv = Math.floor(Math.random() * 80);
-      scx2.fillStyle = 'rgba(' + nv + ',' + nv + ',' + (nv * 0.8) + ',0.55)';
-      scx2.fillRect(nx, ny, 2, 2);
-    }
-  }
-  // Glitch bands
-  for (var gb = 0; gb < 4; gb++) {
-    var gy = Math.floor(Math.random() * 220);
-    var gw = 50 + Math.floor(Math.random() * 200);
-    var gx2 = Math.floor(Math.random() * (320 - gw));
-    scx2.fillStyle = 'rgba(255,255,200,' + (0.08 + Math.random() * 0.18) + ')';
-    scx2.fillRect(gx2, gy, gw, 3 + Math.floor(Math.random() * 6));
-  }
-  // Tracking lines
-  scx2.strokeStyle = 'rgba(255,255,255,0.1)';
-  scx2.lineWidth = 1.5;
-  for (var tl = 0; tl < 8; tl++) {
-    var ty = Math.floor(Math.random() * 240);
-    scx2.beginPath(); scx2.moveTo(0, ty); scx2.lineTo(320, ty + Math.random() * 6 - 3); scx2.stroke();
-  }
-  // Vignette
-  var vg = scx2.createRadialGradient(160, 120, 20, 160, 120, 160);
-  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.75)');
-  scx2.fillStyle = vg; scx2.fillRect(0, 0, 320, 240);
-
-  var screenMat = new THREE.MeshStandardMaterial({
-    map: new THREE.CanvasTexture(scv2),
-    emissive: new THREE.Color(0x080808), emissiveIntensity: 0.9,
-    roughness: 0.15
-  });
-  var screen = mkMesh(new THREE.PlaneGeometry(monW * 0.76, monH * 0.69), screenMat);
-  screen.position.set(0, H + monH / 2 + 0.02, monD / 2 + 0.018); g.add(screen);
-  // Screen glow
-  var sgl = new THREE.PointLight(0x88ff44, 0.55, 2.5, 2.2);
-  sgl.position.set(0, H + monH / 2 + 0.02, monD / 2 + 0.4); g.add(sgl);
-  // Knobs on side
-  for (var ki = 0; ki < 2; ki++) {
-    var kn = mkMesh(new THREE.CylinderGeometry(0.04, 0.04, 0.05, 16), matStd(0x303028, 0.7, 0.1));
-    kn.rotation.z = Math.PI / 2;
-    kn.position.set(monW / 2 + 0.025, H + 0.25 + ki * 0.18, -0.1); g.add(kn);
-  }
-  var shd = makeDropShadow(0.62, 0.62, 0.7);
-  g.add(shd);
-  return g;
-}
-
-// ------ ブラウン管テレビ ------
-function buildCRTTV(R2) {
-  var g = new THREE.Group();
-  // Proportions: wide boxy CRT body
-  var W = 0.82 + R2() * 0.55;
-  var H = W * 0.78;
-  var D = W * 0.82 + 0.1; // CRTs are deep
-  var bodyCol = R2() > 0.5 ? 0x2a2820 : (R2() > 0.5 ? 0xc8c0a8 : 0x1a1816);
-  var bodyMat = matStd(bodyCol, 0.82, 0.04);
-  // Main body
-  var body = mkMesh(new THREE.BoxGeometry(W, H, D), bodyMat);
-  body.position.y = H / 2 + 0.12; g.add(body);
-  // Screen bulge (CRT glass – slightly convex box)
-  var sW = W * 0.72, sH = H * 0.74;
-  // Bezel frame
-  var bezel = mkMesh(new THREE.BoxGeometry(sW + 0.055, sH + 0.055, 0.04), matStd(0x111110, 0.85, 0.02));
-  bezel.position.set(0, H / 2 + 0.12, D / 2 + 0.002); g.add(bezel);
-  // Screen content – TV static / broadcast
-  var scv3 = document.createElement('canvas');
-  scv3.width = 256; scv3.height = 200;
-  var scx3 = scv3.getContext('2d');
-  var tvMode = Math.floor(R2() * 3);
-  if (tvMode === 0) {
-    // Static noise
-    scx3.fillStyle = '#0a0808'; scx3.fillRect(0, 0, 256, 200);
-    for (var px2 = 0; px2 < 256; px2 += 2) {
-      for (var py2 = 0; py2 < 200; py2 += 2) {
-        var pv = Math.floor(Math.random() * 120);
-        scx3.fillStyle = 'rgba(' + pv + ',' + pv + ',' + pv + ',0.7)';
-        scx3.fillRect(px2, py2, 2, 2);
-      }
-    }
-  } else if (tvMode === 1) {
-    // Color bars (broadcast test pattern)
-    var barCols = ['#c0c0c0','#c0c000','#00c0c0','#00c000','#c000c0','#c00000','#0000c0','#000000'];
-    var bw = Math.ceil(256 / barCols.length);
-    barCols.forEach(function(bc, bi) { scx3.fillStyle = bc; scx3.fillRect(bi * bw, 0, bw, 200); });
-    scx3.fillStyle = 'rgba(0,0,0,0.18)';
-    for (var sc2 = 0; sc2 < 200; sc2 += 4) { scx3.fillRect(0, sc2, 256, 2); }
-  } else {
-    // Dark dim room scene suggestion + scanlines
-    scx3.fillStyle = '#060604'; scx3.fillRect(0, 0, 256, 200);
-    scx3.fillStyle = 'rgba(50,50,40,0.4)';
-    scx3.fillRect(30, 60, 196, 90);
-    scx3.fillStyle = 'rgba(0,0,0,0.3)';
-    for (var sc3 = 0; sc3 < 200; sc3 += 3) { scx3.fillRect(0, sc3, 256, 1); }
-  }
-  // Scanlines always on top
-  scx3.fillStyle = 'rgba(0,0,0,0.22)';
-  for (var sl2 = 0; sl2 < 200; sl2 += 2) { scx3.fillRect(0, sl2, 256, 1); }
-  // CRT phosphor vignette
-  var vg3 = scx3.createRadialGradient(128, 100, 10, 128, 100, 130);
-  vg3.addColorStop(0, 'rgba(0,0,0,0)'); vg3.addColorStop(1, 'rgba(0,0,0,0.65)');
-  scx3.fillStyle = vg3; scx3.fillRect(0, 0, 256, 200);
-  var screenMat2 = new THREE.MeshStandardMaterial({
-    map: new THREE.CanvasTexture(scv3),
-    emissive: new THREE.Color(tvMode === 1 ? 0x101008 : 0x050505),
-    emissiveIntensity: 1.2, roughness: 0.08
-  });
-  var screen2 = mkMesh(new THREE.PlaneGeometry(sW * 0.93, sH * 0.93), screenMat2);
-  screen2.position.set(0, H / 2 + 0.12, D / 2 + 0.025); g.add(screen2);
-  // CRT screen glow
-  var sg2 = new THREE.PointLight(tvMode === 1 ? 0xffff88 : 0x88aaff, 0.5, 2.8, 2.0);
-  sg2.position.set(0, H / 2 + 0.12, D / 2 + 0.45); g.add(sg2);
-  // Control panel right side: tuner knob + channel knob
-  var knobMat = matStd(bodyCol, 0.6, 0.1);
-  [[W/2 - 0.04, H/2 + 0.12 + 0.08], [W/2 - 0.04, H/2 + 0.12 - 0.12]].forEach(function(kp) {
-    var kn = mkMesh(new THREE.CylinderGeometry(0.055, 0.055, 0.06, 16), knobMat.clone());
-    kn.rotation.z = Math.PI / 2; kn.position.set(kp[0] + 0.04, kp[1], 0); g.add(kn);
-    // Knob line indicator
-    var ind = mkMesh(new THREE.BoxGeometry(0.055, 0.008, 0.008), matStd(0x111111, 0.7, 0.0));
-    ind.position.set(kp[0] + 0.07, kp[1], 0.025); g.add(ind);
-  });
-  // Speaker grille (left side)
-  var grilleMat = matStd(0x0a0a08, 0.9, 0.0);
-  var grille = mkMesh(new THREE.BoxGeometry(W * 0.16, H * 0.6, 0.015), grilleMat);
-  grille.position.set(-W / 2 + W * 0.08 + 0.02, H / 2 + 0.12, D / 2 + 0.004); g.add(grille);
-  // Legs / feet
-  var feetMat = matStd(0x111110, 0.8, 0.0);
-  [[-W*0.3, -D*0.28], [W*0.3, -D*0.28], [-W*0.3, D*0.28], [W*0.3, D*0.28]].forEach(function(fp) {
-    var ft = mkMesh(new THREE.BoxGeometry(0.07, 0.12, 0.07), feetMat.clone());
-    ft.position.set(fp[0], 0.06, fp[1]); g.add(ft);
-  });
-  // Antenna
-  var antMat = matStd(0x888888, 0.4, 0.8);
-  var antBase = mkMesh(new THREE.BoxGeometry(0.22, 0.04, 0.06), antMat);
-  antBase.position.set(W * 0.15, H + 0.14, -D * 0.1); g.add(antBase);
-  var antL = mkMesh(new THREE.CylinderGeometry(0.008, 0.008, 0.55, 8), antMat.clone());
-  antL.rotation.z = 0.38; antL.position.set(W * 0.15 - 0.13, H + 0.14 + 0.26, -D * 0.1); g.add(antL);
-  var antR = mkMesh(new THREE.CylinderGeometry(0.008, 0.008, 0.55, 8), antMat.clone());
-  antR.rotation.z = -0.38; antR.position.set(W * 0.15 + 0.13, H + 0.14 + 0.26, -D * 0.1); g.add(antR);
-  var shd = makeDropShadow(W * 0.65, W * 0.65, 0.72);
-  g.add(shd);
-  return g;
-}
-
-// ------ ビデオテープ (VHS cassette) ------
-function buildVideoTape(R2) {
-  var g = new THREE.Group();
-  // Scale: roughly 10x actual (human-room scale) OR small cluster on floor
-  var scale = R2() > 0.42 ? 1.0 + R2() * 0.5 : 0.25 + R2() * 0.15;
-  var tW = 1.88 * scale, tH = 1.02 * scale, tD = 2.54 * scale;
-  // Label color
-  var labelCols = [0xe8e0d0, 0xd0e8e0, 0xd0d0e8, 0xe8d8d0, 0xd8e8d0, 0x222222];
-  var lCol = labelCols[Math.floor(R2() * labelCols.length)];
-  var caseMat = matStd(0x111111, 0.78, 0.04);
-  var labelMat = matStd(lCol, 0.82, 0.0);
-  var body = mkMesh(new THREE.BoxGeometry(tW, tH, tD), caseMat);
-  body.position.y = tH / 2; g.add(body);
-  // Label on top face
-  var labelPanel = mkMesh(new THREE.BoxGeometry(tW * 0.86, 0.005, tD * 0.6), labelMat);
-  labelPanel.position.set(0, tH + 0.001, -tD * 0.08); g.add(labelPanel);
-  // Tape window (front face transparent-ish)
-  var winMat = matStd(0x1a1208, 0.35, 0.15);
-  var win = mkMesh(new THREE.BoxGeometry(tW * 0.72, tH * 0.42, 0.01), winMat);
-  win.position.set(0, tH * 0.58, tD / 2 + 0.002); g.add(win);
-  // Tape reels inside window
-  [[-tW * 0.18, tH * 0.58], [tW * 0.18, tH * 0.58]].forEach(function(rp) {
-    var hub = mkMesh(new THREE.CylinderGeometry(tH * 0.18, tH * 0.18, 0.025, 20), matStd(0x333333, 0.6, 0.1));
-    hub.rotation.x = Math.PI / 2; hub.position.set(rp[0], rp[1], tD / 2 + 0.003); g.add(hub);
-    var spool = mkMesh(new THREE.CylinderGeometry(tH * 0.09, tH * 0.09, 0.02, 16), matStd(0x0a0a0a, 0.9, 0.0));
-    spool.rotation.x = Math.PI / 2; spool.position.set(rp[0], rp[1], tD / 2 + 0.012); g.add(spool);
-    // Spoke lines
-    for (var sp2 = 0; sp2 < 5; sp2++) {
-      var spk = mkMesh(new THREE.BoxGeometry(tH * 0.17, 0.01, 0.025), matStd(0x555555, 0.7, 0.0));
-      spk.rotation.z = sp2 * Math.PI / 2.5;
-      spk.rotation.x = Math.PI / 2; spk.position.set(rp[0], rp[1], tD / 2 + 0.01); g.add(spk);
-    }
-  });
-  // Guide pins
-  [[-tW * 0.34, tH * 0.35], [tW * 0.34, tH * 0.35]].forEach(function(gp) {
-    var pin = mkMesh(new THREE.CylinderGeometry(0.025 * scale, 0.025 * scale, 0.035, 8), matStd(0xaaaaaa, 0.3, 0.8));
-    pin.rotation.x = Math.PI / 2; pin.position.set(gp[0], gp[1], tD / 2 + 0.004); g.add(pin);
-  });
-  // Small stacked second tape if scale is small (no recursion — use simple box)
-  if (scale < 0.45) {
-    var smallBody = mkMesh(
-      new THREE.BoxGeometry(tW * 0.88, tH * 0.88, tD * 0.88),
-      matStd(0x111111, 0.78, 0.04)
-    );
-    smallBody.position.set(tW * 0.6, tH * 1.05, 0);
-    smallBody.rotation.y = (R2() - 0.5) * 0.6;
-    g.add(smallBody);
-  }
-  var shd = makeDropShadow(Math.max(tW, tD) * 0.62, Math.max(tW, tD) * 0.62, 0.63);
-  g.add(shd);
-  return g;
-}
+/* グロー付与時に使うカラーパレット */
+var GLB_FANCY_COLORS = [
+  0xff6688, 0x44ddff, 0x88ff44, 0xffaa00, 0xcc44ff,
+  0xff4444, 0x44ffcc, 0x8844ff, 0xffff44, 0x4488ff,
+  0xff8844, 0x44ff88, 0xdd44ff, 0x88ddff, 0xffcc44
+];
 
 /* ----------------------------------------------------------
    Room builder helpers
@@ -3674,136 +2405,6 @@ function makeWallRoughTex() {
   return t;
 }
 
-// ------ 学校の机セット (vintage school desk + chair) ------
-function buildSchoolDesk(R2) {
-  var g = new THREE.Group();
-
-  // --- Materials ---
-  var chromeMat  = matStd(0xb8b8b8, 0.18, 0.88);
-  // Seat color: petrol blue variants
-  var seatCols = [0x2d5f8a, 0x26547c, 0x3a6b9a, 0x1e4d72, 0x336699];
-  var seatCol  = seatCols[Math.floor(R2() * seatCols.length)];
-  var seatMat  = matStd(seatCol, 0.45, 0.08);
-  // Tabletop: cream / off-white laminate
-  var topCols = [0xf0ece0, 0xe8e4d8, 0xf5f2ea, 0xdedad0];
-  var topCol  = topCols[Math.floor(R2() * topCols.length)];
-  var topMat   = matStd(topCol, 0.72, 0.02);
-  var wireMat  = matStd(0x888888, 0.55, 0.65);
-
-  // ========================
-  //  DESK (left side)
-  // ========================
-  var deskH  = 0.75;   // desk surface height
-  var deskW  = 0.60;   // table width  (left-right)
-  var deskD  = 0.48;   // table depth  (front-back)
-  var deskT  = 0.025;  // tabletop thickness
-  var legR   = 0.014;  // leg radius
-  var legTaper = 0.009;
-
-  // Tabletop
-  var top = mkMesh(new THREE.BoxGeometry(deskW, deskT, deskD), topMat);
-  top.position.set(-deskW * 0.05, deskH, 0);
-  g.add(top);
-
-  // 4 tapered chrome legs
-  var legOffX = deskW / 2 - 0.04;
-  var legOffZ = deskD / 2 - 0.04;
-  [[-legOffX, -legOffZ], [legOffX, -legOffZ],
-   [-legOffX,  legOffZ], [legOffX,  legOffZ]].forEach(function(lp) {
-    var leg = mkMesh(new THREE.CylinderGeometry(legTaper, legR, deskH, 8), chromeMat.clone());
-    leg.position.set(lp[0] - deskW * 0.05, deskH / 2, lp[1]);
-    g.add(leg);
-    // rubber foot cap
-    var foot = mkMesh(new THREE.CylinderGeometry(legR * 1.4, legR * 1.4, 0.018, 8), matStd(0x222222, 0.9, 0.0));
-    foot.position.set(lp[0] - deskW * 0.05, 0.009, lp[1]);
-    g.add(foot);
-  });
-
-  // ========================
-  //  CHAIR (right side, offset toward desk)
-  // ========================
-  var chairX  = deskW * 0.42;   // chair center offset from desk center
-  var seatH   = 0.44;   // seat surface height
-  var seatW   = 0.38;
-  var seatD   = 0.38;
-  var seatT   = 0.028;
-  var backH   = 0.36;
-  var backT   = 0.028;
-  var cLegR   = 0.012;
-  var cLegT   = 0.008;
-
-  // Seat shell
-  var seat = mkMesh(new THREE.BoxGeometry(seatW, seatT, seatD), seatMat);
-  seat.position.set(chairX, seatH, 0.04);
-  g.add(seat);
-  // Seat underside bulk
-  var seatBot = mkMesh(new THREE.BoxGeometry(seatW * 0.88, seatT * 0.6, seatD * 0.88),
-    matStd(seatCol - 0x111111, 0.55, 0.06));
-  seatBot.position.set(chairX, seatH - seatT * 0.6, 0.04);
-  g.add(seatBot);
-
-  // Backrest shell
-  var back = mkMesh(new THREE.BoxGeometry(seatW, backH, backT), seatMat);
-  back.position.set(chairX, seatH + backH / 2 + 0.04, -seatD / 2 + backT / 2 + 0.04);
-  back.rotation.x = -0.1; // slight recline
-  g.add(back);
-
-  // Horizontal top rail connecting chair to desk
-  var railH = seatH + backH + 0.02;
-  var railLen = Math.abs(chairX - (-deskW * 0.05 + legOffX)) + 0.06;
-  var rail = mkMesh(new THREE.CylinderGeometry(cLegR, cLegR, railLen, 8), chromeMat.clone());
-  rail.rotation.z = Math.PI / 2;
-  rail.position.set(chairX - railLen / 2 + 0.02, railH, -seatD / 2 + 0.04);
-  g.add(rail);
-
-  // 4 chair legs
-  var cLegOffX = seatW / 2 - 0.035;
-  var cLegOffZ = seatD / 2 - 0.035;
-  [[-cLegOffX, -cLegOffZ], [cLegOffX, -cLegOffZ],
-   [-cLegOffX,  cLegOffZ], [cLegOffX,  cLegOffZ]].forEach(function(lp) {
-    var cleg = mkMesh(new THREE.CylinderGeometry(cLegT, cLegR, seatH, 8), chromeMat.clone());
-    cleg.position.set(chairX + lp[0], seatH / 2, 0.04 + lp[1]);
-    g.add(cleg);
-    // foot
-    var cfoot = mkMesh(new THREE.CylinderGeometry(cLegR * 1.5, cLegR * 1.5, 0.015, 8), matStd(0x222222, 0.9, 0.0));
-    cfoot.position.set(chairX + lp[0], 0.0075, 0.04 + lp[1]);
-    g.add(cfoot);
-  });
-
-  // Wire basket below seat
-  var bW = seatW * 0.72, bD2 = seatD * 0.70;
-  var basketY = seatH * 0.38;
-  var wires_x = 3 + Math.floor(R2() * 2);
-  var wires_z = 3 + Math.floor(R2() * 2);
-  for (var wi = 0; wi <= wires_x; wi++) {
-    var wx = chairX - bW / 2 + (bW / wires_x) * wi;
-    var wr = mkMesh(new THREE.CylinderGeometry(0.006, 0.006, bD2, 6), wireMat.clone());
-    wr.rotation.x = Math.PI / 2;
-    wr.position.set(wx, basketY, 0.04);
-    g.add(wr);
-  }
-  for (var wj = 0; wj <= wires_z; wj++) {
-    var wz = 0.04 - bD2 / 2 + (bD2 / wires_z) * wj;
-    var wr2 = mkMesh(new THREE.CylinderGeometry(0.006, 0.006, bW, 6), wireMat.clone());
-    wr2.rotation.z = Math.PI / 2;
-    wr2.position.set(chairX, basketY, wz);
-    g.add(wr2);
-  }
-  // basket corner verticals
-  var bH2 = 0.14;
-  [[-bW/2, -bD2/2],[bW/2, -bD2/2],[-bW/2, bD2/2],[bW/2, bD2/2]].forEach(function(fp) {
-    var fv = mkMesh(new THREE.CylinderGeometry(0.007, 0.007, bH2, 6), wireMat.clone());
-    fv.position.set(chairX + fp[0], basketY + bH2 / 2, 0.04 + fp[1]);
-    g.add(fv);
-  });
-
-  // Drop shadow
-  var shd = makeDropShadow(1.05, 0.78, 0.72);
-  shd.position.x = chairX * 0.3;
-  g.add(shd);
-
-  return g;
-}
 
 /* ----------------------------------------------------------
    Room builder — multi-shape
@@ -4172,6 +2773,268 @@ function buildRoom(seed) {
   // 登れる階段データ
   var stairData = [];
 
+  // ---- GLBプロップ（家具・備品）配置 ---- クラスター方式 ----
+  (function() {
+    if (typeof buildGLBProp !== 'function') return;
+
+    var SOFAS  = ['sofa1','sofa2','sofa3','sofa4'];
+    var TABLES = ['table1','table2','table3','table4'];
+    var MISC   = ['taru','beach_ball','traffic_cone','barrier','swing','kusa','wooden_storage_shelf','bench'];
+    var ALL    = SOFAS.concat(TABLES).concat(MISC);
+
+    // ドアゾーン
+    var _dz = [{ x: frontDX, z: -hd }];
+    if (hasDoorBack)  _dz.push({ x: backDX,  z:  hd });
+    if (hasDoorLeft)  _dz.push({ x: -hw,     z: leftDZ });
+    if (hasDoorRight) _dz.push({ x:  hw,     z: rightDZ });
+    var DOOR_CLEAR = 3.2;
+
+    // アイテムごとの衝突半径（GLB_PROP_SIZES × 0.52 + 여유0.35）
+    // 大きな家具は広く、草・小物は狭く
+    var _PROP_R = {
+      sofa1: 1.65, sofa2: 1.55, sofa3: 1.70, sofa4: 1.60,
+      table1: 1.15, table2: 1.20, table3: 1.10, table4: 1.25,
+      bench: 1.40,
+      wooden_storage_shelf: 1.55,
+      taru: 0.80, kusa: 0.60, beach_ball: 0.55,
+      traffic_cone: 0.55, barrier: 1.05,
+      swing: 2.10
+    };
+    function _r(name) { return _PROP_R[name] || 1.20; }
+
+    // 配置済みプロップリスト（重複防止用）
+    var _placed = [];
+
+    // 安全チェック: ドア・壁・既存プロップと干渉しないか
+    function _safe(x, z, r) {
+      r = r || 1.0;
+      if (Math.abs(x) > hw - 1.8 || Math.abs(z) > hd - 2.2) return false;
+      for (var i = 0; i < _dz.length; i++) {
+        var dx = x - _dz[i].x, dz = z - _dz[i].z;
+        if (dx*dx + dz*dz < (DOOR_CLEAR+r)*(DOOR_CLEAR+r)) return false;
+      }
+      for (var j = 0; j < _placed.length; j++) {
+        var pd = _placed[j];
+        var pdx = x - pd.x, pdz = z - pd.z;
+        var md = r + pd.r;
+        if (pdx*pdx + pdz*pdz < md*md) return false;
+      }
+      return true;
+    }
+
+    // プロップ1個を配置（失敗時 false を返す）
+    function _place(name, x, z, ry) {
+      var r = _r(name);
+      if (!_safe(x, z, r)) return false;
+      var g = buildGLBProp(R2, name);
+      g.position.set(x, 0, z);
+      g.rotation.y = (ry !== undefined) ? ry : R2() * Math.PI * 2;
+      grp.add(g);
+      _placed.push({ x: x, z: z, r: r });
+      collidables.push({ x: x, z: z, r: r });
+      return true;
+    }
+
+    // クラスター中心座標を安全な位置に取得
+    function _center(margin) {
+      margin = margin || 3.5;
+      var cx, cz, tries = 0;
+      do {
+        cx = (R2()-0.5) * Math.max(1, W - margin*2);
+        cz = (R2()-0.5) * Math.max(1, D - margin*2);
+        tries++;
+      } while (!_safe(cx, cz, 1.8) && tries < 10);
+      return { x: cx, z: cz };
+    }
+
+    // ──────────────────────────────────────────
+    // クラスター定義
+    // ──────────────────────────────────────────
+
+    // ソファ一列（同向き or 交互でも可）
+    function cl_sofa_row() {
+      var c = _center(4.5);
+      var n = 2 + Math.floor(R2()*3);         // 2〜4脚
+      var sp = 3.4 + R2()*0.8;               // ソファ幅2.2+余白分
+      var horiz = R2() < 0.5;
+      var ry = horiz ? 0 : Math.PI/2;
+      var sameSofa = R2() < 0.6;
+      var baseSofa = SOFAS[Math.floor(R2()*SOFAS.length)];
+      var ofs = -(n-1)*sp*0.5;
+      for (var i = 0; i < n; i++) {
+        var s = sameSofa ? baseSofa : SOFAS[Math.floor(R2()*SOFAS.length)];
+        var px = c.x + (horiz ? ofs+i*sp : (R2()-0.5)*0.25);
+        var pz = c.z + (horiz ? (R2()-0.5)*0.25 : ofs+i*sp);
+        _place(s, px, pz, ry + (R2()-0.5)*0.12);
+      }
+      // 端にテーブルを添える（40%）
+      if (R2() < 0.4) {
+        var tx = c.x + (horiz ? ofs+(n+0.4)*sp : (R2()-0.5)*1.5);
+        var tz = c.z + (horiz ? (R2()-0.5)*1.5 : ofs+(n+0.4)*sp);
+        _place(TABLES[Math.floor(R2()*TABLES.length)], tx, tz, R2()*Math.PI*2);
+      }
+    }
+
+    // ソファ向かい合わせ（対面配置）
+    function cl_sofa_face() {
+      var c = _center(4.5);
+      var horiz = R2() < 0.5;
+      var gap = 3.8 + R2()*1.8;              // 両ソファ半径合計3.3+余白
+      var sA = SOFAS[Math.floor(R2()*SOFAS.length)];
+      var sB = R2()<0.55 ? sA : SOFAS[Math.floor(R2()*SOFAS.length)];
+      var ryA = horiz ? 0        : Math.PI/2;
+      var ryB = horiz ? Math.PI  : -Math.PI/2;
+      if (horiz) {
+        _place(sA, c.x-gap/2, c.z, ryA);
+        _place(sB, c.x+gap/2, c.z, ryB);
+      } else {
+        _place(sA, c.x, c.z-gap/2, ryA);
+        _place(sB, c.x, c.z+gap/2, ryB);
+      }
+      // 中央にテーブル（65%）
+      if (R2() < 0.65) {
+        _place(TABLES[Math.floor(R2()*TABLES.length)], c.x, c.z, R2()*Math.PI*2);
+      }
+    }
+
+    // ラウンジセット（ソファ + 前テーブル）
+    function cl_lounge() {
+      var c = _center(4.5);
+      var horiz = R2() < 0.5;
+      var ry = horiz ? 0 : Math.PI/2;
+      var n = 1 + Math.floor(R2()*2);
+      var sp = 3.4;                           // ソファ間隔
+      var ofs = -(n-1)*sp*0.5;
+      for (var i = 0; i < n; i++) {
+        var px = c.x + (horiz ? ofs+i*sp : 0);
+        var pz = c.z + (horiz ? 0 : ofs+i*sp);
+        _place(SOFAS[Math.floor(R2()*SOFAS.length)], px, pz, ry);
+      }
+      // 手前にテーブル（ソファ幅の外）
+      var fwd = 2.6 + R2()*0.5;
+      _place(
+        TABLES[Math.floor(R2()*TABLES.length)],
+        c.x + (horiz ? 0 : fwd),
+        c.z + (horiz ? fwd : 0),
+        R2()*Math.PI*2
+      );
+    }
+
+    // ベンチ一列（バス停・列車待ち風）
+    function cl_bench_line() {
+      var c = _center(4.0);
+      var n = 2 + Math.floor(R2()*3);          // 2〜4台
+      var sp = 3.0 + R2()*0.6;                // bench幅1.8+余白
+      var horiz = R2() < 0.5;
+      var ry = horiz ? 0 : Math.PI/2;
+      var ofs = -(n-1)*sp*0.5;
+      for (var i = 0; i < n; i++) {
+        var px = c.x + (horiz ? ofs+i*sp : (R2()-0.5)*0.2);
+        var pz = c.z + (horiz ? (R2()-0.5)*0.2 : ofs+i*sp);
+        _place('bench', px, pz, ry + (R2()-0.5)*0.1);
+      }
+    }
+
+    // 草むら（密集）— 草は小さいので狭くてよい
+    function cl_kusa() {
+      var c = _center(3);
+      var n = 4 + Math.floor(R2()*5);          // 4〜8株
+      var spread = 2.0 + R2()*1.8;
+      for (var i = 0; i < n; i++) {
+        var ang = R2()*Math.PI*2;
+        var dist = R2()*spread;
+        _place('kusa', c.x+Math.cos(ang)*dist, c.z+Math.sin(ang)*dist, R2()*Math.PI*2);
+      }
+    }
+
+    // コーン・バリアライン（工事ゾーン風）
+    function cl_cone_line() {
+      var c = _center(3);
+      var n = 3 + Math.floor(R2()*3);          // 3〜5本
+      var sp = 1.4 + R2()*0.5;                // コーンは小さいので狭くてよい
+      var horiz = R2() < 0.5;
+      var ofs = -(n-1)*sp*0.5;
+      var item = R2() < 0.5 ? 'traffic_cone' : 'barrier';
+      for (var i = 0; i < n; i++) {
+        var px = c.x + (horiz ? ofs+i*sp : (R2()-0.5)*0.15);
+        var pz = c.z + (horiz ? (R2()-0.5)*0.15 : ofs+i*sp);
+        _place(item, px, pz, R2()*Math.PI*2);
+      }
+    }
+
+    // 収納コーナー（棚 + 樽）
+    function cl_storage() {
+      var c = _center(4.0);
+      var ry = Math.floor(R2()*4)*Math.PI/2;
+      _place('wooden_storage_shelf', c.x, c.z, ry);
+      var tn = 2 + Math.floor(R2()*3);
+      for (var i = 0; i < tn; i++) {
+        // 棚から 1.8〜3.5 離した位置にランダム配置
+        var ang = R2()*Math.PI*2;
+        var dist = 1.8 + R2()*1.7;
+        _place('taru', c.x+Math.cos(ang)*dist, c.z+Math.sin(ang)*dist, R2()*Math.PI*2);
+      }
+    }
+
+    // ゆるいカオス散らばり（テーマなし）
+    function cl_scatter() {
+      var c = _center(3);
+      var n = 3 + Math.floor(R2()*4);
+      for (var i = 0; i < n; i++) {
+        _place(ALL[Math.floor(R2()*ALL.length)],
+          c.x+(R2()-0.5)*6, c.z+(R2()-0.5)*6, R2()*Math.PI*2);
+      }
+    }
+
+    // ──────────────────────────────────────────
+    // ルームテーマ選択
+    // ──────────────────────────────────────────
+    var CLUSTERS = [
+      cl_sofa_row, cl_sofa_row,       // 高確率
+      cl_sofa_face,
+      cl_lounge, cl_lounge,           // 高確率
+      cl_bench_line, cl_bench_line,   // 高確率
+      cl_kusa, cl_kusa,               // 高確率
+      cl_cone_line,
+      cl_storage,
+      cl_scatter
+    ];
+
+    // 12%: フルカオスルーム（全部バラバラ）
+    var isChaosRoom = R2() < 0.12;
+    if (isChaosRoom) {
+      var n2 = 5 + Math.floor(R2()*8);
+      for (var pi = 0; pi < n2; pi++) {
+        var px2 = (R2()-0.5)*Math.max(1, W-4);
+        var pz2 = (R2()-0.5)*Math.max(1, D-6);
+        _place(ALL[Math.floor(R2()*ALL.length)], px2, pz2, R2()*Math.PI*2);
+      }
+      return;
+    }
+
+    // 通常: クラスターを 1〜3 個配置
+    var numClusters = isMega
+      ? 2 + Math.floor(R2()*3)   // メガルームは 2〜4
+      : 1 + Math.floor(R2()*2);  // 通常は 1〜2
+
+    // 45%: 同種クラスターを繰り返す（テーマ感強め）
+    var dominant = (R2() < 0.45)
+      ? CLUSTERS[Math.floor(R2()*CLUSTERS.length)]
+      : null;
+
+    for (var ci = 0; ci < numClusters; ci++) {
+      var fn = dominant || CLUSTERS[Math.floor(R2()*CLUSTERS.length)];
+      fn();
+    }
+
+    // 草がないルームに草を足す（25%）
+    var hasKusa = false;
+    for (var ki = 0; ki < _placed.length; ki++) {
+      if (_placed[ki].r < 0.7) { hasKusa = true; break; }
+    }
+    if (!hasKusa && R2() < 0.25) cl_kusa();
+  })();
+
   // ---- wall paintings ----
   var shapeLabel = { rect:'ROOM',hex:'HEX',cylinder:'CYLINDER',dome:'DOME',
     lshape:'L-SHAPE',cross:'CROSS',atrium:'ATRIUM',cave:'CAVE',
@@ -4227,37 +3090,6 @@ function buildRoom(seed) {
     grp.add(crMesh);
     var crBodyH = crMesh.userData.bodyH || 1.4;
     interactables.push({ type:'creature', lx:crX, ly:crBodyH * 0.5, lz:crZ, data:{creatureId:crId}, mesh:crMesh });
-  }
-  // ---- メガルーム限定: 巨大マシュマロマン (35%確率) ----
-  if (isMega && R2() < 0.35) {
-    var mmDef = CREATURE_DATA[50]; // マシュマロマン (glb7-adult)
-    var mmMesh = buildCreature3D(mmDef.visualType, R2, mmDef.palette);
-    // 巨大スケール: 8〜16倍
-    var mmScale = 8 + R2() * 8;
-    mmMesh.scale.set(mmScale, mmScale, mmScale);
-    // 中央付近に配置
-    var mmX = (R2() - 0.5) * Math.max(0, W - 30);
-    var mmZ = (R2() - 0.5) * Math.max(0, D - 30);
-    mmMesh.position.set(mmX, 0, mmZ);
-    mmMesh.rotation.y = R2() * Math.PI * 2;
-    mmMesh.userData.baseY = 0;
-    mmMesh.userData.creatureId = 50;
-    mmMesh.userData.wanderTarget.set(mmX, 0, mmZ);
-    mmMesh.userData.wanderTimer = 5.0 + Math.random() * 8.0;
-    // ゆっくりとした巨大移動速度
-    mmMesh.userData.wanderSpeed  = 0.12 + R2() * 0.08;
-    mmMesh.userData.alertSpeed   = 0.35 + R2() * 0.15;
-    // 巨大マシュマロ専用ライト (暖かいホワイトグロウ)
-    var mmGlow = new THREE.PointLight(0xfff4e0, 2.5, mmScale * 12, 1.6);
-    mmGlow.position.set(mmX, mmScale * 2.2, mmZ);
-    grp.add(mmGlow);
-    grp.add(mmMesh);
-    interactables.push({
-      type: 'creature',
-      lx: mmX, ly: mmScale * 1.5, lz: mmZ,
-      data: { creatureId: 50, isMegaMarshmallow: true },
-      mesh: mmMesh
-    });
   }
   // Insects: 55% chance, 1-3 insects per room
   if (R2() < 0.55) {
@@ -4557,20 +3389,3 @@ function updateWaterSurfaces(dt) {
   }
 }
 
-/* ----------------------------------------------------------
-   Flash light pool update (extracted from animate for clarity)
----------------------------------------------------------- */
-function updateFlashLightPool(dt) {
-  for (var _fli = 0; _fli < _flashLightPool.length; _fli++) {
-    var _fle = _flashLightPool[_fli];
-    if (!_fle.inUse) continue;
-    _fle.age += dt;
-    var _ft = Math.min(1, _fle.age / _fle.duration);
-    _fle.light.intensity = 10.0 * (1 - _ft);
-    if (_ft >= 1) {
-      _fle.light.intensity = 0;
-      _fle.light.visible = false;
-      _fle.inUse = false;
-    }
-  }
-}

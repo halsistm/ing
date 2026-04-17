@@ -126,6 +126,7 @@ function animate() {
   updateFlashLightPool(dt);
   updateEffects(dt);   // ← render より前に置く
   updateCombat(dt);
+  updateCreatureAttacks(dt);
   updateWeapons(dt);
   updateActionUI(dt);
   

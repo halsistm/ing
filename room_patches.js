@@ -25,86 +25,138 @@ window.buildGLBProp = function buildGLBProp(R2, name) {
   var fCol       = GLB_FANCY_COLORS[Math.floor(R2() * GLB_FANCY_COLORS.length)];
   var doGlow     = R2() < 0.35;
 
+  /* ----- 即時表示プレースホルダー (GLBロード完了まで表示) ----- */
+  var _phMat = new THREE.MeshStandardMaterial({
+    color: fCol,
+    roughness: 0.55, metalness: 0.15,
+    transparent: true, opacity: 0.55,
+    emissive: new THREE.Color(fCol), emissiveIntensity: 0.18
+  });
+  var _phH    = targetSize * 0.55;
+  var _phMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(targetSize * 0.55, _phH, targetSize * 0.42),
+    _phMat
+  );
+  _phMesh.castShadow = true;
+  _phMesh.position.y = _phH * 0.5;
+  _phMesh.name = '__glbPropPH';
+  g.add(_phMesh);
+  g.add(makeDropShadow(targetSize * 0.45, targetSize * 0.45, 0.38));
+
   function _applyModel(gltf) {
     var model;
-    try { model = gltf.scene.clone(true); }
-    catch (e) { console.warn('[GLBProp] clone failed:', name, e); return; }
+    try {
+      /* gltf.scene が存在しない場合に備えたガード */
+      if (!gltf || !gltf.scene) {
+        console.warn('[GLBProp] invalid gltf:', name);
+        return;
+      }
+      model = gltf.scene.clone(true);
+    } catch (e) {
+      console.warn('[GLBProp] clone failed:', name, e);
+      return;
+    }
 
     /* 自動スケール */
-    var box = new THREE.Box3().setFromObject(model);
-    var sv  = new THREE.Vector3();
-    box.getSize(sv);
-    var maxDim = Math.max(sv.x, sv.y, sv.z);
-    if (maxDim > 0) model.scale.setScalar(targetSize / maxDim);
-
-    /* ▼ FIX 1: 底面 Y=0 合わせ — box が空の場合 min.y=Infinity になるのを防ぐ */
-    box.setFromObject(model);
-    var _minY = isFinite(box.min.y) ? box.min.y : 0;
-    model.position.y = -_minY;
+    try {
+      var box = new THREE.Box3();
+      box.setFromObject(model);
+      var sv  = new THREE.Vector3();
+      box.getSize(sv);
+      var maxDim = Math.max(sv.x, sv.y, sv.z);
+      if (maxDim > 0.001) {
+        model.scale.setScalar(targetSize / maxDim);
+        /* 底面 Y=0 合わせ: スケール後に再計算 */
+        box.setFromObject(model);
+        var _minY = isFinite(box.min.y) ? box.min.y : 0;
+        model.position.y = -_minY;
+      }
+    } catch (e2) {
+      console.warn('[GLBProp] scale/align failed:', name, e2);
+    }
 
     /* マテリアル処理 */
-    model.traverse(function (child) {
-      if (!child.isMesh) return;
-      child.castShadow    = true;
-      child.receiveShadow = true;
-      try { child.geometry.computeVertexNormals(); } catch (e2) {}
+    try {
+      model.traverse(function (child) {
+        if (!child.isMesh) return;
+        child.castShadow    = true;
+        child.receiveShadow = true;
+        try { child.geometry.computeVertexNormals(); } catch (e3) {}
 
-      var hasVC  = !!(child.geometry && child.geometry.attributes && child.geometry.attributes.color);
-      var origM  = Array.isArray(child.material) ? child.material[0] : child.material;
-      var hasTex = !!(origM && origM.map);
+        var hasVC  = !!(child.geometry && child.geometry.attributes && child.geometry.attributes.color);
+        var origM  = Array.isArray(child.material) ? child.material[0] : child.material;
+        var hasTex = !!(origM && origM.map);
 
-      if (hasTex) {
-        /* テクスチャあり → clone してグロー付与 */
-        var mats = Array.isArray(child.material) ? child.material : [child.material];
-        for (var mi = 0; mi < mats.length; mi++) {
-          if (!mats[mi]) continue;
-          var cm = mats[mi].clone();
-          cm.needsUpdate = true;
-          /* ▼ FIX 2: Math.random() → R2() */
-          if (doGlow) { cm.emissive = new THREE.Color(fCol); cm.emissiveIntensity = 0.15 + R2() * 0.3; }
-          if (Array.isArray(child.material)) child.material[mi] = cm; else child.material = cm;
+        if (hasTex) {
+          var mats = Array.isArray(child.material) ? child.material : [child.material];
+          for (var mi = 0; mi < mats.length; mi++) {
+            if (!mats[mi]) continue;
+            var cm = mats[mi].clone();
+            cm.needsUpdate = true;
+            if (doGlow) { cm.emissive = new THREE.Color(fCol); cm.emissiveIntensity = 0.15 + R2() * 0.3; }
+            if (Array.isArray(child.material)) child.material[mi] = cm; else child.material = cm;
+          }
+        } else if (hasVC) {
+          var vc = new THREE.MeshStandardMaterial({
+            vertexColors: true,
+            roughness: 0.3 + R2() * 0.4,
+            metalness: 0.1 + R2() * 0.2
+          });
+          if (doGlow) { vc.emissive = new THREE.Color(fCol); vc.emissiveIntensity = 0.2 + R2() * 0.5; }
+          child.material = vc;
+        } else {
+          var fancy = GLB_FANCY_COLORS[Math.floor(R2() * GLB_FANCY_COLORS.length)];
+          var nm = new THREE.MeshStandardMaterial({
+            color: fancy,
+            roughness: 0.2 + R2() * 0.5,
+            metalness: 0.1 + R2() * 0.4
+          });
+          if (doGlow) { nm.emissive = new THREE.Color(fancy); nm.emissiveIntensity = 0.4 + R2() * 1.0; }
+          child.material = nm;
         }
-      } else if (hasVC) {
-        /* ▼ FIX 2: Math.random() → R2() */
-        var vc = new THREE.MeshStandardMaterial({
-          vertexColors: true,
-          roughness: 0.3 + R2() * 0.4,
-          metalness: 0.1 + R2() * 0.2
-        });
-        if (doGlow) { vc.emissive = new THREE.Color(fCol); vc.emissiveIntensity = 0.2 + R2() * 0.5; }
-        child.material = vc;
-      } else {
-        /* ▼ FIX 2: Math.random() → R2() */
-        var fancy = GLB_FANCY_COLORS[Math.floor(R2() * GLB_FANCY_COLORS.length)];
-        var nm = new THREE.MeshStandardMaterial({
-          color: fancy,
-          roughness: 0.2 + R2() * 0.5,
-          metalness: 0.1 + R2() * 0.4
-        });
-        if (doGlow) { nm.emissive = new THREE.Color(fancy); nm.emissiveIntensity = 0.4 + R2() * 1.0; }
-        child.material = nm;
-      }
-    });
+      });
+    } catch (e4) {
+      console.warn('[GLBProp] material failed:', name, e4);
+      /* マテリアルが適用できなくてもモデルは追加する */
+    }
+
+    /* 成功: プレースホルダーを非表示にしてモデルを追加 */
+    var ph = g.getObjectByName('__glbPropPH');
+    if (ph) ph.visible = false;
 
     if (doGlow) {
-      /* ▼ FIX 2: Math.random() → R2() */
       var pl = new THREE.PointLight(fCol, 1.2 + R2() * 1.5, targetSize * 5.5, 2.0);
       pl.position.y = targetSize * 0.55;
       g.add(pl);
     }
-
     g.add(model);
-    g.add(makeDropShadow(targetSize * 0.5, targetSize * 0.5, 0.5));
   }
 
-  /* キャッシュ参照（preloadGLBProps でロード済みのはず） */
+  /* GLB失敗時の永続フォールバックボックス（プレースホルダーより目立つ不透明版） */
+  function _addFallbackBox() {
+    var fbMat = new THREE.MeshStandardMaterial({
+      color: fCol, roughness: 0.5, metalness: 0.2,
+      emissive: new THREE.Color(fCol), emissiveIntensity: 0.3
+    });
+    var fbH  = targetSize * 0.55;
+    var fbMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(targetSize * 0.55, fbH, targetSize * 0.42),
+      fbMat
+    );
+    fbMesh.castShadow = true;
+    fbMesh.position.y = fbH * 0.5;
+    g.add(fbMesh);
+    g.add(makeDropShadow(targetSize * 0.45, targetSize * 0.45, 0.42));
+  }
+
+  /* キャッシュ参照 → 同期適用 */
   var cached = window._glbCache && window._glbCache[name];
   if (cached) {
     _applyModel(cached);
   } else {
-    /* フォールバック: その場でロード */
+    /* フォールバック非同期ロード（プレースホルダーは残る） */
     if (typeof THREE.GLTFLoader !== 'undefined') {
-      var fb = new THREE.GLTFLoader();
+      var fb = (typeof _makeGLTFLoader === 'function') ? _makeGLTFLoader() : new THREE.GLTFLoader();
       fb.load(
         'glb/' + name + '.glb',
         function (gltf) {
@@ -113,7 +165,12 @@ window.buildGLBProp = function buildGLBProp(R2, name) {
           _applyModel(gltf);
         },
         null,
-        function (err) { console.warn('[GLBProp] fallback load failed:', name, err); }
+        function (err) {
+          console.warn('[GLBProp] load failed:', name, err);
+          /* プレースホルダーをそのまま残す（不透明に変更） */
+          var ph = g.getObjectByName('__glbPropPH');
+          if (ph && ph.material) { ph.material.transparent = false; ph.material.opacity = 1.0; ph.material.needsUpdate = true; }
+        }
       );
     }
   }

@@ -37,7 +37,7 @@ var WEAPON_DEFS = {
   handgun: {
     name: '拳銃',       nameEn: 'Handgun',
     damage: 8,  accuracy: 0.90, fireRate: 0.50,
-    ammo: 12, maxAmmo: 12, reserveMax: 60,
+    ammo: 18, maxAmmo: 18, reserveMax: 999,
     pellets: 1, spread: 0.015,
     color: 0xFFCC44, emissive: 0x885500
   }
@@ -47,7 +47,7 @@ var WEAPON_DEFS = {
    プレイヤー武器スロット
 ================================================================ */
 /* ハンドガン常時装備（スロット廃止） */
-var playerWeapons    = [{ type: 'handgun', ammo: 12, reserveAmmo: 60 }];
+var playerWeapons    = [{ type: 'handgun', ammo: 18, reserveAmmo: 3 }];
 var activeWeaponSlot = 0;
 var _wpnCooldown     = 0.0;            /* 発射インターバル秒 */
 
@@ -218,12 +218,32 @@ function spawnWeaponsInRoom(room) {
   /* 前ルームの生物HPバーを全消去 */
   if (typeof cleanupAllHPSprites === 'function') cleanupAllHPSprites();
 
-  /* 前ルームのアイテムを削除 */
+  /* 前ルームのアイテムを削除（GPU リソースも dispose してVRAMリークを防ぐ） */
+  var _slots = ['mesh', 'glow', 'beam', 'ring'];
   for (var fi = 0; fi < floorItems.length; fi++) {
-    if (floorItems[fi].mesh)  scene.remove(floorItems[fi].mesh);
-    if (floorItems[fi].glow)  scene.remove(floorItems[fi].glow);
-    if (floorItems[fi].beam)  scene.remove(floorItems[fi].beam);
-    if (floorItems[fi].ring)  scene.remove(floorItems[fi].ring);
+    var _item = floorItems[fi];
+    if (!_item) continue;
+    for (var _si = 0; _si < _slots.length; _si++) {
+      var _obj = _item[_slots[_si]];
+      if (!_obj) continue;
+      scene.remove(_obj);
+      _obj.traverse(function(_child) {
+        if (_child.geometry) { try { _child.geometry.dispose(); } catch(e) {} }
+        if (_child.material) {
+          var _mats = Array.isArray(_child.material) ? _child.material : [_child.material];
+          for (var _mi = 0; _mi < _mats.length; _mi++) {
+            if (!_mats[_mi]) continue;
+            var _texSlots = ['map','roughnessMap','normalMap','emissiveMap','metalnessMap'];
+            for (var _ti = 0; _ti < _texSlots.length; _ti++) {
+              if (_mats[_mi][_texSlots[_ti]]) {
+                try { _mats[_mi][_texSlots[_ti]].dispose(); } catch(e) {}
+              }
+            }
+            try { _mats[_mi].dispose(); } catch(e) {}
+          }
+        }
+      });
+    }
   }
   floorItems = [];
 
@@ -323,8 +343,8 @@ function _doPickup(item) {
   if (item.type === 'ammo') {
     var pw = playerWeapons[0];
     var def = WEAPON_DEFS[pw.type];
-    pw.reserveAmmo = Math.min(def.reserveMax, pw.reserveAmmo + def.maxAmmo * 2);
-    _pickup_msg('★ 弾薬補充');
+    pw.reserveAmmo = Math.min(def.reserveMax, pw.reserveAmmo + 1);
+    _pickup_msg('★ カートリッジ +1');
     _updateHUD();
     return;
   }
@@ -424,11 +444,12 @@ function _updateHUD() {
   if (pw) {
     var def = WEAPON_DEFS[pw.type];
     _hudNameEl.textContent = def.name;
-    _hudAmmoEl.textContent = pw.ammo + ' / ' + pw.reserveAmmo;
+    _hudAmmoEl.textContent = pw.ammo + ' / ' + def.maxAmmo + '  ×' + pw.reserveAmmo;
     _hudAmmoEl.style.color =
-      pw.ammo === 0  ? 'rgba(255,50,50,0.95)' :
-      pw.ammo <= 2   ? 'rgba(255,180,50,0.95)' :
-                       'rgba(255,255,200,0.92)';
+      pw.ammo === 0 && pw.reserveAmmo === 0 ? 'rgba(255,50,50,0.95)' :
+      pw.ammo === 0                          ? 'rgba(255,160,40,0.95)' :
+      pw.ammo <= 4                           ? 'rgba(255,200,80,0.95)' :
+                                               'rgba(255,255,200,0.92)';
     if (_hudSlotEls[0]) {
       _hudSlotEls[0].textContent = def.name;
       _hudSlotEls[0].style.color  = 'rgba(255,255,160,1.0)';
@@ -488,11 +509,23 @@ function fireWeapon() {
     _castRay(sx, sy, def.damage);
   }
 
+  /* 発射音 */
+  if (typeof playSoundShot === 'function') playSoundShot();
+
   /* マズルフラッシュ */
   var fwd = new THREE.Vector3(0, 0, -0.55).applyEuler(camera.rotation);
   _muzzleLight.position.copy(camera.position).add(fwd);
   _muzzleLight.intensity = 2.8;
   _muzzleTimer = 0.07;
+
+  /* リコイル（pitch/yaw を直接加算 → loop.js で camera に反映。元に戻らない）*/
+  if (typeof pitch !== 'undefined') {
+    pitch -= 0.022 + Math.random() * 0.013;
+    pitch  = Math.max(-Math.PI / 2.2, pitch);
+  }
+  if (typeof yaw !== 'undefined') {
+    yaw += (Math.random() - 0.5) * 0.009;
+  }
 
   /* エフェクト */
   if (typeof triggerEffect === 'function') {
@@ -509,11 +542,9 @@ function fireWeapon() {
 function _reload(pw) {
   if (!pw || pw.reserveAmmo <= 0) return;
   var def  = WEAPON_DEFS[pw.type];
-  var need = def.maxAmmo - pw.ammo;
-  var take = Math.min(need, pw.reserveAmmo);
-  pw.ammo       += take;
-  pw.reserveAmmo -= take;
-  _pickup_msg('リロード完了');
+  pw.ammo        = def.maxAmmo;  /* カートリッジ1本まるごと交換 */
+  pw.reserveAmmo -= 1;
+  _pickup_msg('カートリッジ交換');
   _updateHUD();
 }
 

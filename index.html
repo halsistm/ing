@@ -638,7 +638,7 @@ canvas.locked{cursor:none}
 <canvas id="canvas"></canvas>
 <div id="room-info">ROOM 001</div>
 <div id="door-hint">— EXIT —</div>
-<div id="pc-hint">CLICK TO ENTER &nbsp;|&nbsp; TAB : CURSOR &nbsp;|&nbsp; N : NEXT &nbsp;|&nbsp; Z : 図鑑</div>
+<div id="pc-hint">CLICK TO ENTER &nbsp;|&nbsp; TAB : CURSOR &nbsp;|&nbsp; N : NEXT &nbsp;|&nbsp; Z : ITEM</div>
 <div id="stick-zone"><div id="stick-ring"><div id="stick-knob"></div></div></div>
 <div id="look-right"></div>
 <div id="fade"></div>
@@ -649,7 +649,7 @@ canvas.locked{cursor:none}
 <button id="shoot-btn">SNARE</button>
 <div id="crosshair-hit"></div>
 <div id="capture-notify"><span id="capture-name"></span><span id="capture-sub"></span></div>
-<button id="zukan-btn">[Z] 図鑑</button>
+<button id="zukan-btn">[Z] ITEM</button>
 <button id="audio-btn">♪ ON</button>
 <div id="collection-overlay">
   <div id="collection-header">
@@ -708,20 +708,22 @@ window.onerror = function(msg, src, line, col, err) {
   onerror="document.getElementById('loading-error').style.display='flex';document.getElementById('loading-text').style.display='none';document.getElementById('progress-bar').style.display='none'"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/MarchingCubes.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
 <!-- ▼ ゲームコア（creatures は room.js の後にロード） -->
 <script src="engine.js"></script>
 <script src="effects.js"></script>
 <script src="combat.js"></script>
+<script src="creature_attacks.js"></script>
 <script src="weapons.js"></script>
-<script src="weapons_patches.js"></script>
 <script src="room.js"></script>
 <script src="room_patches.js"></script>
+<script src="room_memory_patches.js"></script>
+<script src="room_props_patch.js"></script> 
 <script src="creatures.js"></script>
 <script src="creatures3D.js"></script>
 <script src="collection.js"></script>
 <script src="audio.js"></script>
 <script src="player.js"></script>
-<script src="player_patches.js"></script>
 <script src="init.js"></script>
 <script src="loop.js"></script>
 <script src="ui.js"></script>
