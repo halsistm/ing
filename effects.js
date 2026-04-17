@@ -35,7 +35,8 @@ var _eff = {
   motionBlur:  { active: false, timer: 0.0, dur: 0.0 },
   warp:        { active: false, timer: 0.0, dur: 0.0 },
   chromaBurst: { active: false, timer: 0.0, dur: 0.0 },
-  hitFlash:    { active: false, timer: 0.0, dur: 0.0 }
+  hitFlash:    { active: false, timer: 0.0, dur: 0.0 },
+  shotFlash:   { active: false, timer: 0.0, dur: 0.0 }
 };
 
 var _effectsReady = false;
@@ -56,6 +57,7 @@ var _EFF_FRAG = [
   'uniform float uWarp;',         // 0-1  波歪み強度
   'uniform float uChromaBurst;',  // 0-1  色収差爆発強度
   'uniform float uHitFlash;',     // 0-1  被弾フラッシュ強度
+  'uniform float uShotFlash;',   // 0-1  発射フラッシュ強度
   'varying vec2 vUv;',
   '',
   'float rand(vec2 co){ return fract(sin(dot(co.xy,vec2(12.9898,78.233)))*43758.5453); }',
@@ -175,6 +177,12 @@ var _EFF_FRAG = [
   '    col.rgb += vec3(uHitFlash * 0.06, 0.0, 0.0);',
   '  }',
 
+  /* ── 発射フラッシュ（暖色まばたき）── */
+  '  if(uShotFlash > 0.0){',
+  '    float fcenter = clamp(1.0 - dot(cc * 2.2, cc * 2.2), 0.0, 1.0);',
+  '    col.rgb += vec3(1.0, 0.92, 0.72) * uShotFlash * 0.18 * (0.5 + 0.5 * fcenter);',
+  '  }',
+
   '  col.rgb = max(col.rgb, 0.0);',
   '  gl_FragColor = col;',
   '}'
@@ -203,7 +211,8 @@ function initEffects() {
       uMotionBlur:  { value: 0.0 },
       uWarp:        { value: 0.0 },
       uChromaBurst: { value: 0.0 },
-      uHitFlash:    { value: 0.0 }
+      uHitFlash:    { value: 0.0 },
+      uShotFlash:   { value: 0.0 }
     },
     vertexShader:   _EFF_VERT,
     fragmentShader: _EFF_FRAG,
@@ -267,6 +276,7 @@ function updateEffects(dt) {
   var warpInt   = _eval('warp');
   var chromaInt = _eval('chromaBurst');
   var hitInt    = _eval('hitFlash');
+  var shotInt   = _eval('shotFlash');
 
   /* 砂嵐：sin変調でザザッ→静止→ザザザッのリズム */
   if (sandInt > 0.0) {
@@ -284,6 +294,7 @@ function updateEffects(dt) {
   vhsMaterial.uniforms.uWarp.value        = warpInt;
   vhsMaterial.uniforms.uChromaBurst.value = chromaInt;
   vhsMaterial.uniforms.uHitFlash.value    = hitInt;
+  vhsMaterial.uniforms.uShotFlash.value   = shotInt;
 
   /* loop.js が vhsTime を別に設定している場合は上書きしない */
   /* （重複設定だが無害） */
@@ -319,6 +330,11 @@ function triggerRoomTransitionEffect() {
   triggerEffect('motionBlur',  0.70);
   triggerEffect('blockNoise',  0.35);
   triggerEffect('warp',        0.25);
+}
+
+/** 発射時まばたきフラッシュ */
+function triggerShotFlash() {
+  triggerEffect('shotFlash', 0.09);
 }
 
 /** 武器発射（ショットガン用）*/

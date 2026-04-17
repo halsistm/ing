@@ -520,16 +520,19 @@ function fireWeapon() {
 
   /* リコイル（pitch/yaw を直接加算 → loop.js で camera に反映。元に戻らない）*/
   if (typeof pitch !== 'undefined') {
-    pitch -= 0.022 + Math.random() * 0.013;
+    pitch -= 0.016 + Math.random() * 0.026;
     pitch  = Math.max(-Math.PI / 2.2, pitch);
   }
   if (typeof yaw !== 'undefined') {
-    yaw += (Math.random() - 0.5) * 0.009;
+    yaw += (Math.random() - 0.5) * 0.022;
   }
 
   /* エフェクト */
   if (typeof triggerEffect === 'function') {
     triggerEffect('chromaBurst', 0.06);
+  }
+  if (typeof triggerShotFlash === 'function') {
+    triggerShotFlash();
   }
 
   /* 自動リロード */
