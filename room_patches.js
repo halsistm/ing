@@ -8,8 +8,6 @@
    2. buildGLBProp: _applyModel 内の Math.random() → R2() でシード決定論化
    3. buildRoom:    返り値に seed を追加
       （weapons.js の spawnWeaponsInRoom が room.seed を参照するため必要）
-   4. buildCrystal: room.js 版を buildCrystalProp に改名
-      （creatures3D.js 版と名前が衝突するため）
 ============================================================= */
 
 /* -----------------------------------------------------------------
@@ -193,18 +191,6 @@ window.buildGLBProp = function buildGLBProp(R2, name) {
   };
 })();
 
-/* -----------------------------------------------------------------
-   Fix 4: room.js の buildCrystal をエイリアス保存
-   ロード順: room.js (dead code 版) → room_patches.js → creatures3D.js (正規版)
-   このパッチ実行時点では room.js 版が window.buildCrystal。
-   その後 creatures3D.js が正規版で上書きするので特別な対処は不要。
-   room.js 版を念のため buildCrystalProp として保存しておくだけでよい。
------------------------------------------------------------------ */
-if (typeof buildCrystal === 'function') {
-  window.buildCrystalProp = window.buildCrystal;
-  /* creatures3D.js が後でロードされ buildCrystal を正しく上書きする。
-     Object.defineProperty などの細工は不要。 */
-}
 
 /* -----------------------------------------------------------------
    Fix A + Fix E: enterDoor を再定義

@@ -352,9 +352,27 @@ function buildGLBVariant(R2, glbKey, sizeKey, palOverride) {
                        : '';
   var colorAssign      = hasVertexColor ? '  vVC = aZoneColor.rgb;'
                        : '  vVC = vec3(0.5);';
-  // 問題3対応: 頂点カラー欠損を無言でフォールバックせず警告する
   if (!hasVertexColor) {
-    console.warn('[buildGLBVariant] ' + glbKey + ' に頂点カラー(aZoneColor)なし → 全頂点がデフォルトゾーンにフォールバック');
+    console.warn('[buildGLBVariant] ' + glbKey + ' に頂点カラー(aZoneColor)なし → MeshStandardMaterialにフォールバック');
+    var fbMat = new THREE.MeshStandardMaterial({
+      color: pal.z[0], roughness: pal.rough, metalness: pal.metal
+    });
+    var fbMesh = new THREE.Mesh(geo, fbMat);
+    fbMesh.castShadow = true; fbMesh.receiveShadow = true;
+    fbMesh.scale.setScalar(sc);
+    fbMesh.position.set(-center.x*sc, -box.min.y*sc, -center.z*sc);
+    var fbG = new THREE.Group();
+    fbG.add(fbMesh);
+    fbG.userData.isGLBGhost = true;
+    fbG.userData.ghostBodyMat = fbMat;
+    fbG.userData.ghostGlowMat = null;
+    fbG.userData.paletteName  = pal.name;
+    var fbShadowR = targetH * 0.42;
+    fbG.add(_c3d_makeDropShadow(fbShadowR, fbShadowR, 0.28 + targetH * 0.04));
+    var fbWanderSpd = 0.014 / Math.max(0.4, targetH * 0.8);
+    _c3d_setWanderMeta(fbG, R2, fbWanderSpd, fbWanderSpd * 4.2);
+    fbG.userData.bodyH = targetH;
+    return fbG;
   }
 
   var zoneMat = new THREE.ShaderMaterial({
@@ -441,6 +459,21 @@ function buildGLBVariant(R2, glbKey, sizeKey, palOverride) {
   bodyMesh.receiveShadow = true;
   bodyMesh.scale.setScalar(sc);
   bodyMesh.position.set(-center.x*sc, -box.min.y*sc, -center.z*sc);
+
+  // シェーダーコンパイル失敗を初回描画時に検知し、MeshStandardMaterialへ差し替え
+  bodyMesh.onBeforeRender = function(renderer) {
+    var props = renderer.properties.get(zoneMat);
+    if (!props || !props.program) return;
+    var diag = props.program.diagnostics;
+    if (diag && !diag.runnable) {
+      console.warn('[buildGLBVariant] ' + glbKey + ' シェーダーコンパイル失敗 → MeshStandardMaterialにフォールバック');
+      bodyMesh.material = new THREE.MeshStandardMaterial({
+        color: pal.z[0], roughness: pal.rough, metalness: pal.metal
+      });
+    }
+    bodyMesh.onBeforeRender = null;
+  };
+
   g.add(bodyMesh);
 
   /* ── オーラグロウレイヤー ── */

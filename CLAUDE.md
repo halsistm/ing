@@ -1,5 +1,9 @@
 # ∞Gallery — Infinite Exhibition
 
+## リポジトリ
+- **GitHub**: https://github.com/halsistm/ing
+- push先: `git push origin main --force`（履歴が diverge している場合は `--force` 必須）
+
 ## プロジェクト概要
 Three.jsを使った3Dギャラリー探索ゲーム。
 プレイヤーが無限に続くギャラリー空間を歩き回り、クリーチャーを捕獲・図鑑に登録していく。

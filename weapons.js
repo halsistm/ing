@@ -520,8 +520,8 @@ function fireWeapon() {
 
   /* リコイル（pitch/yaw を直接加算 → loop.js で camera に反映。元に戻らない）*/
   if (typeof pitch !== 'undefined') {
-    pitch -= 0.016 + Math.random() * 0.026;
-    pitch  = Math.max(-Math.PI / 2.2, pitch);
+    pitch += 0.016 + Math.random() * 0.026;
+    pitch  = Math.min(Math.PI / 2.2, pitch);
   }
   if (typeof yaw !== 'undefined') {
     yaw += (Math.random() - 0.5) * 0.022;
