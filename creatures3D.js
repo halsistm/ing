@@ -156,15 +156,26 @@ function buildGLBVariant(R2, glbKey, sizeKey) {
   var maxDim = Math.max(bbSize.x, bbSize.y, bbSize.z);
   var sc     = targetH / maxDim;
 
-  /* GLBのオリジナルマテリアルを使用。なければMeshStandardMaterialにフォールバック */
-  var _matKey = geoKey.replace('Geometry', 'Material');
-  var _origMat = window[_matKey];
-  var mat = _origMat ? _origMat.clone()
-          : new THREE.MeshStandardMaterial({
-              vertexColors: !!geo.attributes.color,
-              roughness: 0.55,
-              metalness: 0.05,
-            });
+  /* モデルごとのベースカラー（シェーダー削除後の表示用） */
+  var _GLB_MAT_COLORS = {
+    'glb':  { color: 0x44ccff, emissive: 0x112244 },
+    'glb2': { color: 0xff44cc, emissive: 0x441122 },
+    'glb3': { color: 0x88ff44, emissive: 0x224411 },
+    'glb4': { color: 0xff8844, emissive: 0x442211 },
+    'glb5': { color: 0x9944ff, emissive: 0x221144 },
+    'glb6': { color: 0xff3322, emissive: 0x441111 },
+    'glb7': { color: 0xffcc22, emissive: 0x443311 },
+    'glb8': { color: 0xaaddff, emissive: 0x112233 },
+    'glb9': { color: 0xccffee, emissive: 0x113322 },
+  };
+  var _mc = _GLB_MAT_COLORS[glbKey] || { color: 0xffffff, emissive: 0x111111 };
+  var mat = new THREE.MeshStandardMaterial({
+    color:            _mc.color,
+    emissive:         new THREE.Color(_mc.emissive),
+    emissiveIntensity: 0.55,
+    roughness:        0.55,
+    metalness:        0.05,
+  });
 
   var bodyMesh = new THREE.Mesh(geo, mat);
   bodyMesh.castShadow    = true;
