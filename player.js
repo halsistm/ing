@@ -118,6 +118,7 @@ var STICK_MAX = 40;
 if (isMobile) {
   stickZone.addEventListener('touchstart', function (e) {
     var t = e.changedTouches[0];
+    joyX = joyY = 0;
     stickTouchId = t.identifier;
     stickOriginX = t.clientX; stickOriginY = t.clientY;
     var zr = stickZone.getBoundingClientRect();
@@ -171,4 +172,14 @@ if (isMobile) {
       if (e.changedTouches[i].identifier === lookTouchId) lookTouchId = null;
     }
   }, { passive: true });
+
+  /* iOS がアプリをバックグラウンドに送った際にスティックをリセット */
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      joyX = joyY = 0;
+      stickTouchId = null;
+      lookTouchId  = null;
+      stickKnob.style.transform = 'translate(-50%, -50%)';
+    }
+  });
 }

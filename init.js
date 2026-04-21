@@ -60,10 +60,15 @@ setProgress(30);
 
       if (geo.attributes.color) {
         geo.setAttribute('aZoneColor', geo.attributes.color);
-        geo.deleteAttribute('color');
       }
 
       window[geoKey] = geo;
+
+      /* オリジナルマテリアルを保存（GLBのBlenderマテリアルをそのまま使うため） */
+      var _matKey = geoKey.replace('Geometry', 'Material');
+      if (!window[_matKey] && child.material) {
+        window[_matKey] = child.material;
+      }
     });
   }
 

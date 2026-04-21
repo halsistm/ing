@@ -2,7 +2,7 @@
    Texture builders
 ---------------------------------------------------------- */
 function makeWallTex(r, g, b) {
-  var S  = 1024;
+  var S  = _isMob ? 512 : 1024;
   var cv = document.createElement('canvas');
   cv.width = cv.height = S;
   var cx = cv.getContext('2d');
@@ -10,7 +10,8 @@ function makeWallTex(r, g, b) {
   cx.fillStyle = 'rgb(' + rr + ',' + rg + ',' + rb + ')';
   cx.fillRect(0, 0, S, S);
   var i, d, sz;
-  for (i = 0; i < 22000; i++) {
+  var _wNoise = _isMob ? 5500 : 22000;
+  for (i = 0; i < _wNoise; i++) {
     d  = (Math.random() - 0.5) * 32;
     sz = Math.random() * 2.2 + 0.3;
     cx.fillStyle = 'rgba('
@@ -20,7 +21,8 @@ function makeWallTex(r, g, b) {
       + (0.04 + Math.random() * 0.08) + ')';
     cx.fillRect(Math.random() * S, Math.random() * S, sz, sz);
   }
-  for (i = 0; i < 60; i++) {
+  var _wStreak = _isMob ? 20 : 60;
+  for (i = 0; i < _wStreak; i++) {
     var y = Math.random() * S;
     cx.strokeStyle = 'rgba('
       + (r - 18) + ',' + (g - 18) + ',' + (b - 18) + ','
@@ -33,21 +35,23 @@ function makeWallTex(r, g, b) {
   }
 
   var style = Math.floor(Math.random() * 4);
-  if (style === 1) { 
+  if (style === 1) {
     cx.fillStyle = 'rgba(255,255,255,0.06)';
-    for(var j=0; j<40; j++) {
+    var _wArcs = _isMob ? 15 : 40;
+    for(var j=0; j<_wArcs; j++) {
       cx.beginPath();
       cx.arc(Math.random()*S, Math.random()*S, 40+Math.random()*120, 0, Math.PI*2);
       cx.fill();
     }
-  } else if (style === 2) { 
+  } else if (style === 2) {
     cx.fillStyle = 'rgba(0,0,0,0.04)';
-    for(var j=0; j<15000; j++) { cx.fillRect(Math.random()*S, Math.random()*S, 1, 1); }
+    var _wDots = _isMob ? 3750 : 15000;
+    for(var j=0; j<_wDots; j++) { cx.fillRect(Math.random()*S, Math.random()*S, 1, 1); }
     cx.strokeStyle = 'rgba(0,0,0,0.1)'; cx.lineWidth = 0.8;
     for(var j=0; j<8; j++) {
       cx.beginPath(); cx.moveTo(Math.random()*S, 0); cx.lineTo(Math.random()*S, S); cx.stroke();
     }
-  } else if (style === 3) { 
+  } else if (style === 3) {
     cx.fillStyle = 'rgba(255,255,255,0.05)';
     for(var j=0; j<S; j+=24) { cx.fillRect(j, 0, 12, S); }
   }
@@ -66,7 +70,7 @@ function makeWallTex(r, g, b) {
 }
 
 function makeFloorTex(r, g, b) {
-  var S  = 1024;
+  var S  = _isMob ? 512 : 1024;
   var cv = document.createElement('canvas');
   cv.width = cv.height = S;
   var cx = cv.getContext('2d');
@@ -99,7 +103,8 @@ function makeFloorTex(r, g, b) {
     }
   } else if (style === 1) {
     cx.fillStyle = 'rgba(0,0,0,0.03)';
-    for(var j=0; j<20000; j++) { cx.fillRect(Math.random()*S, Math.random()*S, 1.5, 1.5); }
+    var _fDots = _isMob ? 5000 : 20000;
+    for(var j=0; j<_fDots; j++) { cx.fillRect(Math.random()*S, Math.random()*S, 1.5, 1.5); }
   }
 
   var gl = cx.createLinearGradient(0, 0, S, S);
@@ -109,7 +114,8 @@ function makeFloorTex(r, g, b) {
   cx.fillStyle = gl;
   cx.fillRect(0, 0, S, S);
   var i, d, sz;
-  for (i = 0; i < 8000; i++) {
+  var _fNoise = _isMob ? 2000 : 8000;
+  for (i = 0; i < _fNoise; i++) {
     d  = (Math.random() - 0.5) * 14;
     sz = Math.random() * 1.5 + 0.2;
     cx.fillStyle = 'rgba('
@@ -130,7 +136,8 @@ function makeCeilTex(r, g, b) {
   cx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
   cx.fillRect(0, 0, S, S);
   var i, d;
-  for (i = 0; i < 10000; i++) {
+  var _cNoise = _isMob ? 2500 : 10000;
+  for (i = 0; i < _cNoise; i++) {
     d = (Math.random() - 0.5) * 18;
     cx.fillStyle = 'rgba('
       + Math.floor(r + d) + ',' + Math.floor(g + d) + ','
@@ -163,7 +170,8 @@ function makeFloorRoughTex() {
   cx.fillRect(0, 0, S, S);
 
   // Random smooth/polished patches (lower roughness = brighter in map)
-  for (var i = 0; i < 12000; i++) {
+  var _frNoise = _isMob ? 3000 : 12000;
+  for (var i = 0; i < _frNoise; i++) {
     var v = Math.floor(120 + Math.random() * 95); // 120..214
     var a = 0.03 + Math.random() * 0.08;
     cx.fillStyle = 'rgba(' + v + ',' + v + ',' + v + ',' + a + ')';
@@ -171,7 +179,8 @@ function makeFloorRoughTex() {
   }
 
   // Scratches / streaks
-  for (var j = 0; j < 300; j++) {
+  var _frScratch = _isMob ? 75 : 300;
+  for (var j = 0; j < _frScratch; j++) {
     var ly = Math.random() * S;
     cx.strokeStyle = 'rgba(30,30,30,' + (0.06 + Math.random() * 0.14) + ')';
     cx.lineWidth = 1 + Math.random() * 2.0;
@@ -204,7 +213,8 @@ function makeFloorBumpTex() {
   cx.fillRect(0, 0, S, S);
 
   // Small noise
-  for (var i = 0; i < 26000; i++) {
+  var _fbNoise = _isMob ? 6500 : 26000;
+  for (var i = 0; i < _fbNoise; i++) {
     var v = Math.floor(110 + Math.random() * 80); // 110..190
     var a = 0.02 + Math.random() * 0.06;
     cx.fillStyle = 'rgba(' + v + ',' + v + ',' + v + ',' + a + ')';
@@ -212,7 +222,8 @@ function makeFloorBumpTex() {
   }
 
   // Directional micro scratches
-  for (var j = 0; j < 500; j++) {
+  var _fbScratch = _isMob ? 125 : 500;
+  for (var j = 0; j < _fbScratch; j++) {
     var x0 = Math.random() * S;
     var y0 = Math.random() * S;
     var len = 6 + Math.random() * 22;
@@ -242,7 +253,8 @@ function makeWallBumpTex() {
   cx.fillRect(0, 0, S, S);
 
   // Gentle surface noise (fewer & smaller than floor)
-  for (var i = 0; i < 10000; i++) {
+  var _wbNoise = _isMob ? 2500 : 10000;
+  for (var i = 0; i < _wbNoise; i++) {
     var v = Math.floor(118 + Math.random() * 60); // 118..178 — narrower range = shallower bumps
     var a = 0.015 + Math.random() * 0.04;
     cx.fillStyle = 'rgba(' + v + ',' + v + ',' + v + ',' + a + ')';
@@ -250,7 +262,8 @@ function makeWallBumpTex() {
   }
 
   // Very fine vertical streaks (plaster / paint texture)
-  for (var j = 0; j < 180; j++) {
+  var _wbStreak = _isMob ? 45 : 180;
+  for (var j = 0; j < _wbStreak; j++) {
     var x0 = Math.random() * S;
     var len = 8 + Math.random() * 30;
     var ang = (Math.PI * 0.5) + (Math.random() - 0.5) * 0.15; // near-vertical
@@ -1115,11 +1128,6 @@ function updateInteractables(dt) {
           }
         }
 
-        // ---- GLB Ghost: シェーダー uTime 更新 ----
-        if (_nearAnim && ud.isGLBGhost) {
-          if (ud.ghostBodyMat) ud.ghostBodyMat.uniforms.uTime.value = ud.phase;
-          if (ud.ghostGlowMat) ud.ghostGlowMat.uniforms.uTime.value = ud.phase;
-        }
 
         // ---- Slime: MarchingCubesメタボールアニメ（22m以内のみ、非常に重い）----
         if (_nearAnim && ud.isSlime && ud.mcRef) {
@@ -1623,7 +1631,8 @@ function makeWallRoughTex() {
   cx.fillStyle = '#aaaaaa';
   cx.fillRect(0, 0, S, S);
   // Bright patches = smoother spots (polished)
-  for (var i = 0; i < 6000; i++) {
+  var _wrNoise = _isMob ? 1500 : 6000;
+  for (var i = 0; i < _wrNoise; i++) {
     var v = Math.floor(160 + Math.random() * 85);
     cx.fillStyle = 'rgba(' + v + ',' + v + ',' + v + ',' + (0.04 + Math.random() * 0.07) + ')';
     cx.fillRect(Math.random() * S, Math.random() * S, Math.random() * 3.5 + 0.5, Math.random() * 3.5 + 0.5);
@@ -1702,16 +1711,16 @@ function buildRoom(seed) {
 
   var wallTex  = makeWallTex(pal.wr, pal.wg, pal.wb);
   wallTex.repeat.set(W/4, H/4);
-  var wallRoughTex = makeWallRoughTex();
-  wallRoughTex.repeat.set(W/4, H/4);
-  var wallBumpTex = makeWallBumpTex();
-  wallBumpTex.repeat.set(W/4, H/4);
+  var wallRoughTex = _isMob ? null : makeWallRoughTex();
+  if (wallRoughTex) wallRoughTex.repeat.set(W/4, H/4);
+  var wallBumpTex = _isMob ? null : makeWallBumpTex();
+  if (wallBumpTex) wallBumpTex.repeat.set(W/4, H/4);
   var floorTex = makeFloorTex(pal.fr, pal.fg, pal.fb);
   floorTex.repeat.set(W/4, D/4);
-  var floorRoughTex = makeFloorRoughTex();
-  floorRoughTex.repeat.set(W/4, D/4);
-  var floorBumpTex  = makeFloorBumpTex();
-  floorBumpTex.repeat.set(W/4, D/4);
+  var floorRoughTex = _isMob ? null : makeFloorRoughTex();
+  if (floorRoughTex) floorRoughTex.repeat.set(W/4, D/4);
+  var floorBumpTex  = _isMob ? null : makeFloorBumpTex();
+  if (floorBumpTex) floorBumpTex.repeat.set(W/4, D/4);
   var ceilTex  = makeCeilTex(
     Math.max(pal.wr-14,0), Math.max(pal.wg-14,0), Math.max(pal.wb-14,0));
   ceilTex.repeat.set(W/4, D/4);
@@ -2337,7 +2346,7 @@ function buildRoom(seed) {
   }
   // Insects: 55% chance, 1-3 insects per room
   if (R2() < 0.55) {
-    var insectCount = 1 + Math.floor(R2() * 3);
+    var insectCount = _isMob ? 1 : 1 + Math.floor(R2() * 3);
     for (var ii=0; ii<insectCount; ii++) {
       var insId = Math.floor(R2() * CREATURE_DATA.length);
       var insDef = CREATURE_DATA[insId];

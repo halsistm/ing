@@ -19,17 +19,22 @@ function setProgress(v) {
 }
 
 /* ----------------------------------------------------------
+   Mobile detection (used before player.js loads)
+---------------------------------------------------------- */
+var _isMob = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+
+/* ----------------------------------------------------------
    Renderer
 ---------------------------------------------------------- */
 var canvas   = document.getElementById('canvas');
 var renderer = new THREE.WebGLRenderer({
   canvas: canvas,
-  antialias: true,
+  antialias: !_isMob,
   powerPreference: 'high-performance'
 });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+renderer.setPixelRatio(_isMob ? Math.min(window.devicePixelRatio, 1.0) : Math.min(window.devicePixelRatio, 1.5));
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled   = true;
+renderer.shadowMap.enabled   = !_isMob;
 renderer.shadowMap.type      = THREE.PCFSoftShadowMap;
 renderer.toneMapping         = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.75;
