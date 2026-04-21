@@ -64,9 +64,9 @@ setProgress(30);
 
       window[geoKey] = geo;
 
-      /* オリジナルマテリアルを保存（GLBのBlenderマテリアルをそのまま使うため） */
+      /* ジオメトリと同じメッシュのマテリアルを保存（常に同期） */
       var _matKey = geoKey.replace('Geometry', 'Material');
-      if (!window[_matKey] && child.material) {
+      if (child.material) {
         window[_matKey] = child.material;
       }
     });
