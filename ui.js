@@ -32,21 +32,14 @@
   ].join('\n');
   document.head.appendChild(style);
 
-  /* classList の toggle を monkey-patch して shoot-btn への操作を空振りにする */
-  var _origToggle = DOMTokenList.prototype.toggle;
-  DOMTokenList.prototype.toggle = function(cls, force) {
-    if (this._el === null) {
-      /* 初回: 対象要素を特定 */
-      try { this._el = this; } catch(e) {}
-    }
-    /* shootBtnEl の classList 操作をスキップ */
-    if (shootBtnEl && this === shootBtnEl.classList) {
+  /* shootBtnEl.classList.toggle だけを無効化（DOMTokenList.prototype は変更しない） */
+  if (shootBtnEl) {
+    shootBtnEl.classList.toggle = function(cls, force) {
       /* shootBtnEl への toggle は実際のDOM操作を行わず、引数に応じた値を返す */
       /* force が指定されていない場合は false（非表示維持）を返す */
       return (force !== undefined) ? !!force : false;
-    }
-    return _origToggle.apply(this, arguments);
-  };
+    };
+  }
 })();
 
 /* ================================================================

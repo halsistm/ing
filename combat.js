@@ -665,14 +665,121 @@ function clearLockedCreatures() {
 }
 
 function _disposeCaptureOrbs(lc) {
-  if (lc.ball)   { scene.remove(lc.ball);  try { lc.ball.geometry.dispose();  lc.ballMat.dispose();  } catch(e){} }
-  if (lc.halo)   { scene.remove(lc.halo);  try { lc.halo.geometry.dispose();  lc.haloMat.dispose();  } catch(e){} }
-  if (lc.ballPl) { scene.remove(lc.ballPl); }
-  if (lc.core)   { scene.remove(lc.core);  try { lc.core.geometry.dispose();  lc.coreMat.dispose();  } catch(e){} }
-  if (lc.rings)  { for (var _ri = 0; _ri < lc.rings.length; _ri++) { scene.remove(lc.rings[_ri].mesh); try { lc.rings[_ri].mesh.geometry.dispose(); lc.rings[_ri].mat.dispose(); } catch(e){} } }
-  if (lc.halo2)  { scene.remove(lc.halo2); try { lc.halo2.geometry.dispose(); lc.halo2Mat.dispose(); } catch(e){} }
-  if (lc.trail)  { scene.remove(lc.trail); try { lc.trailGeo.dispose(); lc.trailMat.dispose(); } catch(e){} }
-  if (lc.sparks) { for (var _dsi = 0; _dsi < lc.sparks.length; _dsi++) { scene.remove(lc.sparks[_dsi].mesh); try { lc.sparks[_dsi].mesh.geometry.dispose(); lc.sparks[_dsi].mat.dispose(); } catch(e){} } }
+  /* プール返却（dispose せず再利用）。セットを所有していなければ何もしない */
+  if (lc.orbSet) { _releaseOrbSet(lc.orbSet); lc.orbSet = null; }
+}
+
+/* ================================================================
+   捕獲オーブのプール（遅延成長）
+   - 同時捕獲（PC連打）に備え、空きが無ければ新規生成してプールに追加
+   - 解放時は dispose せず inUse=false にして使い回す
+   ================================================================ */
+var _orbSetPool = [];
+var _ORB_RING_COLS = [0x00eeff, 0xffdd44, 0xaaffcc];
+var _ORB_RING_RADS = [0.28, 0.38, 0.50];
+var _ORB_SPARK_COLS  = [0x00ffff, 0xffffff, 0x88ffee, 0xffd080, 0x44ddff, 0xeeccff];
+var _ORB_SPARK_TILTS = [
+  { tx: 0,            ty: 0            },
+  { tx: Math.PI / 3,  ty: 0            },
+  { tx: -Math.PI / 4, ty: Math.PI / 5  },
+  { tx: Math.PI / 6,  ty: Math.PI / 2  },
+  { tx: -Math.PI / 3, ty: Math.PI / 3  },
+  { tx: Math.PI / 2,  ty: Math.PI / 4  }
+];
+
+function _buildOrbSet() {
+  var set = { inUse: false };
+
+  /* 光の玉 */
+  set.ballMat = new THREE.MeshBasicMaterial({ color: 0x88eeff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+  set.ball    = new THREE.Mesh(new THREE.SphereGeometry(0.20, 12, 8), set.ballMat);
+  set.ball.visible = false; scene.add(set.ball);
+
+  /* ハロー */
+  set.haloMat = new THREE.MeshBasicMaterial({ color: 0x2277ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+  set.halo    = new THREE.Mesh(new THREE.SphereGeometry(0.40, 10, 7), set.haloMat);
+  set.halo.visible = false; scene.add(set.halo);
+
+  /* ポイントライト */
+  set.ballPl = new THREE.PointLight(0x88ccff, 0, 14);
+  scene.add(set.ballPl);
+
+  /* 軌跡ライン（固定バッファ30点）*/
+  set.trailBuf = new Float32Array(30 * 3);
+  set.trailGeo = new THREE.BufferGeometry();
+  set.trailGeo.setAttribute('position', new THREE.BufferAttribute(set.trailBuf, 3));
+  set.trailGeo.setDrawRange(0, 0);
+  set.trailMat = new THREE.LineBasicMaterial({ color: 0x66eeff, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
+  set.trail    = new THREE.Line(set.trailGeo, set.trailMat);
+  set.trail.frustumCulled = false;
+  set.trail.visible = false; scene.add(set.trail);
+
+  /* 内コア */
+  set.coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+  set.core    = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), set.coreMat);
+  set.core.visible = false; scene.add(set.core);
+
+  /* エネルギーリング3枚 */
+  set.rings = [];
+  for (var _ri = 0; _ri < 3; _ri++) {
+    var _rMat  = new THREE.MeshBasicMaterial({ color: _ORB_RING_COLS[_ri], transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+    var _rMesh = new THREE.Mesh(new THREE.TorusGeometry(_ORB_RING_RADS[_ri], 0.022, 6, 32), _rMat);
+    _rMesh.visible = false; scene.add(_rMesh);
+    set.rings.push({ mesh: _rMesh, mat: _rMat });
+  }
+
+  /* 外殻ハロー2 */
+  set.halo2Mat = new THREE.MeshBasicMaterial({ color: 0x1155dd, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+  set.halo2    = new THREE.Mesh(new THREE.SphereGeometry(0.70, 10, 7), set.halo2Mat);
+  set.halo2.visible = false; scene.add(set.halo2);
+
+  /* 周回スパーク6粒（軌道パラメータはインデックス依存＝毎回同一なので焼き込み）*/
+  set.sparks = [];
+  for (var _si = 0; _si < 6; _si++) {
+    var _sMat  = new THREE.MeshBasicMaterial({ color: _ORB_SPARK_COLS[_si], transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+    var _sMesh = new THREE.Mesh(new THREE.SphereGeometry(0.038, 4, 4), _sMat);
+    _sMesh.visible = false; scene.add(_sMesh);
+    set.sparks.push({ mesh: _sMesh, mat: _sMat, r: 0.33 + _si * 0.05, speed: 2.0 + _si * 0.4, phase: _si * Math.PI / 3, tilt: _ORB_SPARK_TILTS[_si] });
+  }
+
+  _orbSetPool.push(set);
+  return set;
+}
+
+/* オーブセットを取得（空き再利用 or 新規）し、状態を完全初期化して返す */
+function _acquireOrbSet() {
+  var set = null;
+  for (var i = 0; i < _orbSetPool.length; i++) {
+    if (!_orbSetPool[i].inUse) { set = _orbSetPool[i]; break; }
+  }
+  if (!set) set = _buildOrbSet();
+  set.inUse = true;
+
+  /* ── 状態リセット（前回の使用状態を持ち越さない）── */
+  set.ball.visible = false;  set.ballMat.opacity = 0;  set.ball.scale.setScalar(1);
+  set.halo.visible = false;  set.haloMat.opacity = 0;  set.halo.scale.setScalar(1);
+  set.core.visible = false;  set.coreMat.opacity = 0;  set.core.scale.setScalar(1);
+  set.halo2.visible = false; set.halo2Mat.opacity = 0; set.halo2.scale.setScalar(1);
+  set.ballPl.intensity = 0;
+  for (var _r = 0; _r < set.rings.length; _r++) {
+    set.rings[_r].mesh.visible = false; set.rings[_r].mat.opacity = 0;
+  }
+  for (var _s = 0; _s < set.sparks.length; _s++) {
+    set.sparks[_s].mesh.visible = false; set.sparks[_s].mat.opacity = 0;
+  }
+  set.trail.visible = false; set.trailMat.opacity = 0.9; set.trailGeo.setDrawRange(0, 0);
+  return set;
+}
+
+/* オーブセットを解放（dispose せず非表示にしてプールへ戻す）*/
+function _releaseOrbSet(set) {
+  if (!set) return;
+  set.ball.visible = false; set.halo.visible = false; set.core.visible = false; set.halo2.visible = false;
+  set.ballPl.intensity = 0;
+  set.trail.visible = false; set.trailGeo.setDrawRange(0, 0);
+  for (var _r = 0; _r < set.rings.length; _r++)  set.rings[_r].mesh.visible = false;
+  for (var _s = 0; _s < set.sparks.length; _s++) set.sparks[_s].mesh.visible = false;
+  set.inUse = false;
 }
 
 // ジグザグプラズマライン頂点を毎フレーム完全ランダム生成
@@ -817,85 +924,8 @@ function _lockCreature(itc) {
     });
   }
 
-  /* ── 光の玉 ── */
-  var _ballGeo = new THREE.SphereGeometry(0.20, 12, 8);
-  var _ballMat = new THREE.MeshBasicMaterial({ color: 0x88eeff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
-  var _ball    = new THREE.Mesh(_ballGeo, _ballMat);
-  _ball.visible = false;
-  scene.add(_ball);
-
-  var _haloGeo = new THREE.SphereGeometry(0.40, 10, 7);
-  var _haloMat = new THREE.MeshBasicMaterial({ color: 0x2277ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
-  var _halo    = new THREE.Mesh(_haloGeo, _haloMat);
-  _halo.visible = false;
-  scene.add(_halo);
-
-  var _ballPl = new THREE.PointLight(0x88ccff, 0, 14);
-  scene.add(_ballPl);
-
-  /* ── 軌跡ライン（フェーズ2用、固定バッファ 30点）── */
-  var _tBuf = new Float32Array(30 * 3);
-  var _tGeo = new THREE.BufferGeometry();
-  _tGeo.setAttribute('position', new THREE.BufferAttribute(_tBuf, 3));
-  _tGeo.setDrawRange(0, 0);
-  var _tMat  = new THREE.LineBasicMaterial({ color: 0x66eeff, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
-  var _trail = new THREE.Line(_tGeo, _tMat);
-  _trail.frustumCulled = false;
-  _trail.visible = false;
-  scene.add(_trail);
-
-  /* ── 内コア（白く脈動する小球）── */
-  var _coreGeo = new THREE.SphereGeometry(0.07, 8, 6);
-  var _coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
-  var _core    = new THREE.Mesh(_coreGeo, _coreMat);
-  _core.visible = false;
-  scene.add(_core);
-
-  /* ── エネルギーリング（3枚、異なる軸・色で回転）── */
-  var _rings = [];
-  var _ringCols = [0x00eeff, 0xffdd44, 0xaaffcc];
-  var _ringRads = [0.28, 0.38, 0.50];
-  for (var _ri = 0; _ri < 3; _ri++) {
-    var _rGeo  = new THREE.TorusGeometry(_ringRads[_ri], 0.022, 6, 32);
-    var _rMat  = new THREE.MeshBasicMaterial({
-      color: _ringCols[_ri],
-      transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending
-    });
-    var _rMesh = new THREE.Mesh(_rGeo, _rMat);
-    _rMesh.visible = false;
-    scene.add(_rMesh);
-    _rings.push({ mesh: _rMesh, mat: _rMat });
-  }
-
-  /* ── 外殻ハロー2（より大きく淡い）── */
-  var _halo2Geo = new THREE.SphereGeometry(0.70, 10, 7);
-  var _halo2Mat = new THREE.MeshBasicMaterial({ color: 0x1155dd, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
-  var _halo2    = new THREE.Mesh(_halo2Geo, _halo2Mat);
-  _halo2.visible = false;
-  scene.add(_halo2);
-
-  /* ── 周回スパーク（6粒、異なる軌道面）── */
-  var _sparks = [];
-  var _sparkCols  = [0x00ffff, 0xffffff, 0x88ffee, 0xffd080, 0x44ddff, 0xeeccff];
-  var _sparkTilts = [
-    { tx: 0,            ty: 0            },
-    { tx: Math.PI / 3,  ty: 0            },
-    { tx: -Math.PI / 4, ty: Math.PI / 5  },
-    { tx: Math.PI / 6,  ty: Math.PI / 2  },
-    { tx: -Math.PI / 3, ty: Math.PI / 3  },
-    { tx: Math.PI / 2,  ty: Math.PI / 4  }
-  ];
-  for (var _si = 0; _si < 6; _si++) {
-    var _sGeo  = new THREE.SphereGeometry(0.038, 4, 4);
-    var _sMat  = new THREE.MeshBasicMaterial({
-      color: _sparkCols[_si], transparent: true, opacity: 0,
-      depthWrite: false, blending: THREE.AdditiveBlending
-    });
-    var _sMesh = new THREE.Mesh(_sGeo, _sMat);
-    _sMesh.visible = false;
-    scene.add(_sMesh);
-    _sparks.push({ mesh: _sMesh, mat: _sMat, r: 0.33 + _si * 0.05, speed: 2.0 + _si * 0.4, phase: _si * Math.PI / 3, tilt: _sparkTilts[_si] });
-  }
+  /* ── オーブ一式をプールから取得（生成/破棄を毎回しない）── */
+  var _orb = _acquireOrbSet();
 
   /* ── 捕獲成功・失敗を事前抽選 ── */
   var _willSucceed = (Math.random() < getCaptureChance(itc));
@@ -911,15 +941,16 @@ function _lockCreature(itc) {
     mats:        _mats,
     origEmissive:_origEmissive,
     origScale:   itc.mesh ? itc.mesh.scale.x : 1,
-    ball:        _ball,   ballMat: _ballMat,
-    halo:        _halo,   haloMat: _haloMat,
-    ballPl:      _ballPl,
-    core:        _core,   coreMat: _coreMat,
-    rings:       _rings,
-    halo2:       _halo2,  halo2Mat: _halo2Mat,
-    trail:       _trail,  trailGeo: _tGeo, trailMat: _tMat,
-    trailBuf:    _tBuf,   trailCount: 0,
-    sparks:      _sparks,
+    orbSet:      _orb,
+    ball:        _orb.ball,   ballMat: _orb.ballMat,
+    halo:        _orb.halo,   haloMat: _orb.haloMat,
+    ballPl:      _orb.ballPl,
+    core:        _orb.core,   coreMat: _orb.coreMat,
+    rings:       _orb.rings,
+    halo2:       _orb.halo2,  halo2Mat: _orb.halo2Mat,
+    trail:       _orb.trail,  trailGeo: _orb.trailGeo, trailMat: _orb.trailMat,
+    trailBuf:    _orb.trailBuf, trailCount: 0,
+    sparks:      _orb.sparks,
     arcStart:    null,
     arcCtrl:     null,
     willSucceed: _willSucceed

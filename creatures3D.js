@@ -36,6 +36,7 @@ function _c3d_getShadowTex() {
   cx2.fillStyle = gr;
   cx2.fillRect(0, 0, S, S);
   _c3d_shadowTexCache = new THREE.CanvasTexture(cv);
+  _c3d_shadowTexCache._shared = true; /* disposeRoom で破棄されないようにする */
   return _c3d_shadowTexCache;
 }
 var _c3d_makeDropShadow = (typeof makeDropShadow !== 'undefined') ? makeDropShadow : function(rx, rz, opacity) {

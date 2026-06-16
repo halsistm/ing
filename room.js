@@ -473,6 +473,7 @@ function getShadowTex() {
   cx2.fillStyle = gr;
   cx2.fillRect(0, 0, S, S);
   _shadowTexCache = new THREE.CanvasTexture(cv);
+  _shadowTexCache._shared = true; /* disposeRoom で破棄されないようにする */
   return _shadowTexCache;
 }
 
@@ -1239,6 +1240,30 @@ var GLB_FANCY_COLORS = [
 ---------------------------------------------------------- */
 var WALL_T = 0.18; // wall thickness in metres
 
+// 内壁の矩形 {cx,cz,halfX,halfZ} を、プレイヤー衝突用の円リストに変換する
+// （long axis に沿って円を並べ、薄い壁全体をカバーする）
+function _wallColliders(cx, cz, halfX, halfZ) {
+  var out = [];
+  var PLAYER_R = 0.35;
+  var spacing = 0.6;
+  if (halfX >= halfZ) {
+    var r = halfZ + PLAYER_R;
+    var n = Math.max(1, Math.ceil((halfX * 2) / spacing));
+    for (var i = 0; i <= n; i++) {
+      var t = (i / n - 0.5) * 2 * halfX;
+      out.push({ x: cx + t, z: cz, r: r });
+    }
+  } else {
+    var r2 = halfX + PLAYER_R;
+    var n2 = Math.max(1, Math.ceil((halfZ * 2) / spacing));
+    for (var j = 0; j <= n2; j++) {
+      var t2 = (j / n2 - 0.5) * 2 * halfZ;
+      out.push({ x: cx, z: cz + t2, r: r2 });
+    }
+  }
+  return out;
+}
+
 function buildWallFB(grp, W, H, DOOR_W, DOOR_H, doorX, z, facingBack, matFn) {
   var sign = facingBack ? 1 : -1;
   var leftW  = W / 2 + doorX - DOOR_W / 2;
@@ -1453,12 +1478,18 @@ function buildShapeLShape(g, W, D, H, hw, hd, DW, DH, fDX, bDX, lDZ, rDZ, dB, dL
   // Vertical inner wall
   var m2 = mkMesh(new THREE.BoxGeometry(WALL_T, H, bz*2), wM());
   m2.position.set(corner[0]*(hw-bx*2), H/2, corner[1]*(hd-bz)); g.add(m2);
+  // 衝突判定用の矩形を返す（プレイヤーが壁に埋まらないように）
+  return [
+    { cx: corner[0]*(hw-bx),   cz: corner[1]*(hd-bz),   halfX: bx,        halfZ: WALL_T/2 },
+    { cx: corner[0]*(hw-bx*2), cz: corner[1]*(hd-bz),   halfX: WALL_T/2,  halfZ: bz }
+  ];
 }
 
 function buildShapeCross(g, W, D, H, hw, hd, DW, DH, fDX, bDX, lDZ, rDZ, dB, dL, dR, wM, R2) {
   buildShapeRect(g, W, D, H, hw, hd, DW, DH, fDX, bDX, lDZ, rDZ, dB, dL, dR, wM);
   // Block 4 corners with inner walls
   var cx = hw * (0.30 + R2() * 0.18), cz = hd * (0.30 + R2() * 0.18);
+  var rects = [];
   [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(function(s) {
     // Horizontal wall
     var wh1 = mkMesh(new THREE.BoxGeometry(cx*2, H, WALL_T), wM());
@@ -1466,7 +1497,11 @@ function buildShapeCross(g, W, D, H, hw, hd, DW, DH, fDX, bDX, lDZ, rDZ, dB, dL,
     // Vertical wall
     var wv1 = mkMesh(new THREE.BoxGeometry(WALL_T, H, cz*2), wM());
     wv1.position.set(s[0]*(hw-cx*2), H/2, s[1]*(hd-cz)); g.add(wv1);
+    // 衝突判定用の矩形を返す（プレイヤーが壁に埋まらないように）
+    rects.push({ cx: s[0]*(hw-cx),   cz: s[1]*(hd-cz), halfX: cx,       halfZ: WALL_T/2 });
+    rects.push({ cx: s[0]*(hw-cx*2), cz: s[1]*(hd-cz), halfX: WALL_T/2, halfZ: cz });
   });
+  return rects;
 }
 
 function buildShapeAtrium(g, W, D, H, hw, hd, DW, DH, fDX, bDX, lDZ, rDZ, dB, dL, dR, wM, flMat, R2) {
@@ -1816,11 +1851,12 @@ function buildRoom(seed) {
   var leftDZ=(R2()*2-1)*maxZOff,  rightDZ=(R2()*2-1)*maxZOff;
 
   // ---- walls by shape ----
+  var innerWallRects = null;
   if      (shapeType==='hex')      buildShapeHex(grp,W,D,H,hw,hd,DOOR_W,DOOR_H,frontDX,backDX,hasDoorBack,wallMat);
   else if (shapeType==='cylinder') buildShapeCylinder(grp,hw,H,DOOR_W,hasDoorBack,wallMat);
   else if (shapeType==='dome')     buildShapeDome(grp,hw,H,DOOR_W,DOOR_H,wallMat);
-  else if (shapeType==='lshape')   buildShapeLShape(grp,W,D,H,hw,hd,DOOR_W,DOOR_H,frontDX,backDX,leftDZ,rightDZ,hasDoorBack,hasDoorLeft,hasDoorRight,wallMat,R2);
-  else if (shapeType==='cross')    buildShapeCross(grp,W,D,H,hw,hd,DOOR_W,DOOR_H,frontDX,backDX,leftDZ,rightDZ,hasDoorBack,hasDoorLeft,hasDoorRight,wallMat,R2);
+  else if (shapeType==='lshape')   innerWallRects = buildShapeLShape(grp,W,D,H,hw,hd,DOOR_W,DOOR_H,frontDX,backDX,leftDZ,rightDZ,hasDoorBack,hasDoorLeft,hasDoorRight,wallMat,R2);
+  else if (shapeType==='cross')    innerWallRects = buildShapeCross(grp,W,D,H,hw,hd,DOOR_W,DOOR_H,frontDX,backDX,leftDZ,rightDZ,hasDoorBack,hasDoorLeft,hasDoorRight,wallMat,R2);
   else if (shapeType==='atrium')   buildShapeAtrium(grp,W,D,H,hw,hd,DOOR_W,DOOR_H,frontDX,backDX,leftDZ,rightDZ,hasDoorBack,hasDoorLeft,hasDoorRight,wallMat,floorMat,R2);
   else if (shapeType==='cave')     buildShapeCave(grp,W,D,H,hw,hd,DOOR_W,DOOR_H,frontDX,wallMat,R2);
   else if (shapeType==='brutalist') buildShapeBrutalist(grp,W,D,H,hw,hd,DOOR_W,DOOR_H,frontDX,backDX,leftDZ,rightDZ,hasDoorBack,hasDoorLeft,hasDoorRight,wallMat,R2);
@@ -2023,6 +2059,12 @@ function buildRoom(seed) {
 
   // ルーム全体のコリジョンリスト（XZ円）
   var collidables = [];
+  // L字・十字部屋の内壁を衝突リストに追加（壁へのめり込み防止）
+  if (innerWallRects) {
+    innerWallRects.forEach(function(rect) {
+      collidables = collidables.concat(_wallColliders(rect.cx, rect.cz, rect.halfX, rect.halfZ));
+    });
+  }
   // 登れる階段データ
   var stairData = [];
 
@@ -2436,7 +2478,7 @@ function disposeRoom(room) {
           'envMap', 'displacementMap'
         ];
         for (var ti = 0; ti < texSlots.length; ti++) {
-          if (mat[texSlots[ti]]) {
+          if (mat[texSlots[ti]] && !mat[texSlots[ti]]._shared) {
             mat[texSlots[ti]].dispose();
           }
         }

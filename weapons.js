@@ -73,8 +73,24 @@ var _muzzleLight = (function() {
 })();
 var _muzzleTimer = 0.0;
 
-/* ── 弾道トレイル ── */
-var _trails = [];   /* { line, timer, maxTimer } */
+/* ── 弾道トレイル（プール化：発射のたびの生成/破棄を避ける）── */
+var _TRAIL_POOL_SIZE = 16;
+var _trailPool = [];   /* { line, buf, geo, timer, maxTimer, active } */
+(function _initTrailPool() {
+  for (var i = 0; i < _TRAIL_POOL_SIZE; i++) {
+    var buf = new Float32Array(6);   /* 始点・終点の2頂点を固定確保 */
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(buf, 3));
+    var mat = new THREE.LineBasicMaterial({
+      color: 0xFFEE88, transparent: true, opacity: 0, depthWrite: false
+    });
+    var line = new THREE.Line(geo, mat);
+    line.frustumCulled = false;   /* boundingSphere計算を省略 */
+    line.visible = false;
+    scene.add(line);
+    _trailPool.push({ line: line, buf: buf, geo: geo, timer: 0, maxTimer: 0.10, active: false });
+  }
+})();
 
 /* ================================================================
    GLB ファイルマッピング＆キャッシュ
@@ -342,7 +358,8 @@ function _doPickup(item) {
   /* ── 弾薬 ── */
   if (item.type === 'ammo') {
     var pw = playerWeapons[0];
-    var def = WEAPON_DEFS[pw.type];
+    var def = pw && WEAPON_DEFS[pw.type];
+    if (!pw || !def) return;
     pw.reserveAmmo = Math.min(def.reserveMax, pw.reserveAmmo + 1);
     _pickup_msg('★ カートリッジ +1');
     _updateHUD();
@@ -630,16 +647,21 @@ function _castRay(spreadX, spreadY, damage) {
   return hit;
 }
 
-/* ── 弾道トレイル ── */
+/* ── 弾道トレイル（プールから取得して使い回す）── */
 function _spawnTrail(from, to) {
-  var pts = [from, to];
-  var geo = new THREE.BufferGeometry().setFromPoints(pts);
-  var mat = new THREE.LineBasicMaterial({
-    color: 0xFFEE88, transparent: true, opacity: 0.70, depthWrite: false
-  });
-  var line = new THREE.Line(geo, mat);
-  scene.add(line);
-  _trails.push({ line: line, timer: 0.10, maxTimer: 0.10 });
+  var tr = null;
+  for (var i = 0; i < _trailPool.length; i++) {
+    if (!_trailPool[i].active) { tr = _trailPool[i]; break; }
+  }
+  if (!tr) return;   /* プール枯渇時はスキップ（描画負荷の暴走を防ぐ）*/
+
+  tr.buf[0] = from.x; tr.buf[1] = from.y; tr.buf[2] = from.z;
+  tr.buf[3] = to.x;   tr.buf[4] = to.y;   tr.buf[5] = to.z;
+  tr.geo.attributes.position.needsUpdate = true;
+  tr.line.material.opacity = 0.70;
+  tr.line.visible = true;
+  tr.timer  = 0.10;
+  tr.active = true;
 }
 
 /* ================================================================
@@ -670,14 +692,16 @@ function updateWeapons(dt) {
     if (_muzzleTimer <= 0.0) _muzzleLight.intensity = 0.0;
   }
 
-  /* 弾道トレイル消去 */
-  for (var ti = _trails.length - 1; ti >= 0; ti--) {
-    var tr = _trails[ti];
+  /* 弾道トレイル減衰（プール返却。生成/破棄しない）*/
+  for (var ti = 0; ti < _trailPool.length; ti++) {
+    var tr = _trailPool[ti];
+    if (!tr.active) continue;
     tr.timer -= dt;
-    tr.line.material.opacity = Math.max(0.0, tr.timer / tr.maxTimer) * 0.85;
     if (tr.timer <= 0.0) {
-      scene.remove(tr.line);
-      _trails.splice(ti, 1);
+      tr.line.visible = false;
+      tr.active = false;
+    } else {
+      tr.line.material.opacity = Math.max(0.0, tr.timer / tr.maxTimer) * 0.85;
     }
   }
 

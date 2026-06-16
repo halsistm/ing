@@ -76,8 +76,8 @@ function animate() {
   /* wall clamp (disabled mid-transition so player can pass through) */
   if (currentRoom && !transitioning) {
     var hw2 = currentRoom.hw, hd2 = currentRoom.hd;
-    camera.position.x = Math.max(-hw2 + 0.3, Math.min(hw2 - 0.3, camera.position.x));
-    camera.position.z = Math.max(-hd2 + 0.3, Math.min(hd2 - 0.3, camera.position.z));
+    camera.position.x = Math.max(-hw2 + 0.35, Math.min(hw2 - 0.35, camera.position.x));
+    camera.position.z = Math.max(-hd2 + 0.35, Math.min(hd2 - 0.35, camera.position.z));
 
     // ── 大型オブジェクト押し返し（ソリッド系のみ）──
     var _cols = currentRoom.collidables;
